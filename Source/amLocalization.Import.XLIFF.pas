@@ -27,8 +27,15 @@ uses
 // -----------------------------------------------------------------------------
 type
   TModuleImporterXLIFF = class
+  private type
+    TSkipReason = (
+      skipUnchanged,      // Translation is unchanged
+      skipNotFound       // Property not found
+    );
+    TSkipCounts = array[TSkipReason] of integer;
   private
     FTranslationCount: TTranslationCounts;
+    FSkipCounts: TSkipCounts;
   protected
   public
     class constructor Create;
@@ -37,6 +44,7 @@ type
     function LoadFromFile(Project: TLocalizerProject; const Filename: string): TLocalizerModule; overload;
 
     property TranslationCounts: TTranslationCounts read FTranslationCount;
+    property SkipCounts: TSkipCounts read FSkipCounts;
   end;
 
 
@@ -301,7 +309,12 @@ type
   TImportDelegate = reference to function(Module: TLocalizerModule; const ItemName, ItemType, PropertyName, SourceValue: string; var Prop: TLocalizerProperty): boolean;
 var
   TranslationLanguage: TTranslationLanguage;
-  IgnoreMismatch: boolean;
+
+  procedure Skip(Reason: TSkipReason);
+  begin
+    Inc(FSkipCounts[Reason]);
+    Inc(FTranslationCount.CountSkipped);
+  end;
 
   function ProcessNodes(const BodyNode: IXMLNode; Module: TLocalizerModule; Delegate: TImportDelegate): boolean;
 
@@ -556,27 +569,28 @@ var
 
               if (Localize) then
               begin
-                if (not IgnoreMismatch) and (SourceValue <> Prop.Value) then
-                begin
-                  // Do not import obsolete translations - Unless we already know that the source values are wrong
-                  Inc(FTranslationCount.CountSkipped);
-                end else
+                var NewStatus := TranslationStatusMap[TranslationStatus];
+
+                // Mark new translation obsolete if source value has changed
+                if (NewStatus in [tStatusProposed, tStatusTranslated]) and (SourceValue <> Prop.Value) then
+                  NewStatus := tStatusObsolete;
+
                 if (Prop.Translations.TryGetTranslation(TranslationLanguage, Translation)) then
                 begin
-                  if (Translation.Value <> TargetValue) or (Translation.Status <> TranslationStatusMap[TranslationStatus]) then
+                  if (Translation.Value <> TargetValue) or (Translation.Status <> NewStatus) then
                   begin
-                    Translation.Update(TargetValue, TranslationStatusMap[TranslationStatus]);
+                    Translation.Update(TargetValue, NewStatus);
                     Inc(FTranslationCount.CountUpdated);
                   end else
-                    Inc(FTranslationCount.CountSkipped);
+                    Skip(skipUnchanged);
                 end else
                 begin
-                  Prop.Translations.AddOrUpdateTranslation(TranslationLanguage, TargetValue, TranslationStatusMap[TranslationStatus]);
+                  Prop.Translations.AddOrUpdateTranslation(TranslationLanguage, TargetValue, NewStatus);
                   Inc(FTranslationCount.CountAdded);
                 end;
               end;
             end else
-              Inc(FTranslationCount.CountSkipped);
+              Skip(skipNotFound);
           end;
         end;
       end;
@@ -680,9 +694,7 @@ begin
       Format(sXLIFFLanguageMismatch, [Project.SourceLanguage.LanguageName, SourceLanguageItem.LanguageName]),
       mtWarning, [mbIgnore, mbAbort], 0, mbAbort) = mrAbort) then
       Exit(nil);
-    IgnoreMismatch := True;
-  end else
-    IgnoreMismatch := False;
+  end;
 
   SourceFilename := Node.Attributes['original'];
   if (SourceFilename = '') then
