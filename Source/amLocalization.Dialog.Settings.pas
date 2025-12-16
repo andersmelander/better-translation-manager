@@ -1838,7 +1838,7 @@ var
 begin
   ComboBoxOllamaModel.Properties.Items.Clear;
 
-  BaseURL := EditOllamaBaseURL.Text.Trim;
+  BaseURL := string(EditOllamaBaseURL.Text).Trim;
   if BaseURL.IsEmpty then
   begin
     MessageDlg('Please enter the Ollama Base URL first.', mtWarning, [mbOK], 0);
@@ -1924,8 +1924,8 @@ var
   ModelName: string;
   AllTestsPassed: Boolean;
 begin
-  BaseURL := EditOllamaBaseURL.Text.Trim;
-  ModelName := ComboBoxOllamaModel.Text.Trim;
+  BaseURL := string(EditOllamaBaseURL.Text).Trim;
+  ModelName := string(ComboBoxOllamaModel.Text).Trim;
 
   if BaseURL.IsEmpty then
   begin
