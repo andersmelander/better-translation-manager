@@ -1,4 +1,4 @@
-unit amLocalization.Provider.Ollama;
+﻿unit amLocalization.Provider.Ollama;
 
 (*
  * Copyright © 2025 Anders Melander
@@ -61,8 +61,10 @@ type
 implementation
 
 uses
+  System.Generics.Collections, // inlining
   System.NetEncoding,
   System.Net.HttpClient,
+  System.Net.URLClient,
   System.JSON,
   amLocalization.Settings,
   amLocalization.Provider.Ollama.Core;
