@@ -401,7 +401,7 @@ begin
   SourceText := Prop.Value;
 
   // Use EnglishName for language names in the prompt
-  TranslatedText := TranslateText(SourceLanguage.EnglishName, TargetLanguage.EnglishName, SourceText);
+  TranslatedText := TranslateText(SourceLanguage.EnglishLanguageName, TargetLanguage.EnglishLanguageName, SourceText);
 
   Result := (TranslatedText <> '');
 
