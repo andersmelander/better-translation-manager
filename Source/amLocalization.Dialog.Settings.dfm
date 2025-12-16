@@ -121,11 +121,16 @@ inherited FormSettings: TFormSettings
     object EditOllamaTimeout: TcxSpinEdit [3]
       Left = 10000
       Top = 10000
-      Properties.MinValue = 5000.000000000000000000
+      Properties.Alignment.Horz = taRightJustify
+      Properties.DisplayFormat = ',##0 ms'
+      Properties.EditFormat = '0'
       Properties.MaxValue = 300000.000000000000000000
+      Properties.MinValue = 5000.000000000000000000
+      Properties.UseLeftAlignmentOnEditing = False
       Style.HotTrack = False
       Style.TransparentBorder = False
       TabOrder = 37
+      Value = 5000
       Visible = False
       Width = 100
     end
@@ -1840,6 +1845,7 @@ inherited FormSettings: TFormSettings
       Parent = LayoutGroupCategoryProviders
       CaptionOptions.Text = 'Translation Memory'
       ButtonOptions.ShowExpandButton = True
+      Expanded = False
       ItemIndex = 2
       Index = 0
     end
@@ -1950,6 +1956,7 @@ inherited FormSettings: TFormSettings
       Parent = LayoutGroupCategoryProviders
       CaptionOptions.Text = 'Microsoft Translation Service'
       ButtonOptions.ShowExpandButton = True
+      Expanded = False
       ItemIndex = 1
       Index = 1
     end
@@ -2717,6 +2724,7 @@ inherited FormSettings: TFormSettings
       Parent = LayoutGroupCategoryProviders
       CaptionOptions.Text = 'DeepL'
       ButtonOptions.ShowExpandButton = True
+      Expanded = False
       Index = 2
     end
     object LayoutRadioButtonItemDeepLLicenseFree: TdxLayoutRadioButtonItem
@@ -2765,6 +2773,8 @@ inherited FormSettings: TFormSettings
       Parent = LayoutGroupCategoryProviders
       CaptionOptions.Text = 'Ollama (Local LLM)'
       ButtonOptions.ShowExpandButton = True
+      Expanded = False
+      ItemIndex = 4
       Index = 3
     end
     object LayoutItemOllamaBaseURL: TdxLayoutItem
@@ -2787,7 +2797,8 @@ inherited FormSettings: TFormSettings
     end
     object LayoutItemOllamaTimeout: TdxLayoutItem
       Parent = LayoutGroupTranslatorOllama
-      CaptionOptions.Text = 'Timeout (ms):'
+      AlignHorz = ahLeft
+      CaptionOptions.Text = 'Timeout:'
       Control = EditOllamaTimeout
       ControlOptions.OriginalHeight = 21
       ControlOptions.OriginalWidth = 100
@@ -2795,22 +2806,25 @@ inherited FormSettings: TFormSettings
       Index = 2
     end
     object LayoutItemOllamaDetectModels: TdxLayoutItem
-      Parent = LayoutGroupTranslatorOllama
+      Parent = LayoutGroupOllamaButtons
+      AlignHorz = ahRight
       CaptionOptions.Visible = False
       Control = ButtonOllamaDetectModels
       ControlOptions.OriginalHeight = 25
       ControlOptions.OriginalWidth = 120
       ControlOptions.ShowBorder = False
-      Index = 3
+      Index = 0
     end
     object LayoutItemOllamaTest: TdxLayoutItem
-      Parent = LayoutGroupTranslatorOllama
+      Parent = LayoutGroupOllamaButtons
+      AlignHorz = ahRight
+      AlignVert = avClient
       CaptionOptions.Visible = False
       Control = ButtonOllamaTest
       ControlOptions.OriginalHeight = 25
       ControlOptions.OriginalWidth = 120
       ControlOptions.ShowBorder = False
-      Index = 4
+      Index = 1
     end
     object dxLayoutItem26: TdxLayoutItem
       Parent = dxLayoutGroup25
@@ -2820,6 +2834,19 @@ inherited FormSettings: TFormSettings
       ControlOptions.OriginalWidth = 112
       ControlOptions.ShowBorder = False
       Index = 2
+    end
+    object dxLayoutSeparatorItem3: TdxLayoutSeparatorItem
+      Parent = LayoutGroupTranslatorOllama
+      CaptionOptions.Text = 'Separator'
+      Index = 3
+    end
+    object LayoutGroupOllamaButtons: TdxLayoutGroup
+      Parent = LayoutGroupTranslatorOllama
+      AlignVert = avTop
+      Hidden = True
+      LayoutDirection = ldHorizontal
+      ShowBorder = False
+      Index = 4
     end
   end
   inherited ActionList: TActionList

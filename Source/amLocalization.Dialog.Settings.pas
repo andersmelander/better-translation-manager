@@ -338,6 +338,8 @@ type
     LayoutItemOllamaTest: TdxLayoutItem;
     ActionOllamaDetectModels: TAction;
     ActionOllamaTest: TAction;
+    dxLayoutSeparatorItem3: TdxLayoutSeparatorItem;
+    LayoutGroupOllamaButtons: TdxLayoutGroup;
     procedure TextEditTranslatorMSAPIKeyPropertiesButtonClick(Sender: TObject; AButtonIndex: Integer);
     procedure TextEditTranslatorMSAPIKeyPropertiesChange(Sender: TObject);
     procedure ActionCategoryExecute(Sender: TObject);
