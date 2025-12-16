@@ -1802,6 +1802,8 @@ var
 begin
   EditOllamaBaseURL.Properties.Buttons[AButtonIndex].ImageIndex := 0;
 
+  SaveCursor(crAppStart);
+
   TranslationProvider := TTranslationProviderOllama.Create;
   try
     if TranslationProvider.ValidateConnection(EditOllamaBaseURL.Text, ErrorMessage) then
@@ -1842,6 +1844,8 @@ begin
     MessageDlg('Please enter the Ollama Base URL first.', mtWarning, [mbOK], 0);
     Exit;
   end;
+
+  SaveCursor(crHourGlass);
 
   HTTPClient := THTTPClient.Create;
   try
@@ -1934,6 +1938,8 @@ begin
     MessageDlg('Please select or enter a model name first.', mtWarning, [mbOK], 0);
     Exit;
   end;
+
+  SaveCursor(crHourGlass);
 
   TranslationProvider := TTranslationProviderOllama.Create;
   try
