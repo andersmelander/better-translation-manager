@@ -325,6 +325,19 @@ type
     dxLayoutGroup2: TdxLayoutGroup;
     dxLayoutItem26: TdxLayoutItem;
     CheckBoxFileProjectSaveTransient: TcxCheckBox;
+    EditOllamaBaseURL: TcxButtonEdit;
+    ComboBoxOllamaModel: TcxComboBox;
+    EditOllamaTimeout: TcxSpinEdit;
+    ButtonOllamaDetectModels: TcxButton;
+    ButtonOllamaTest: TcxButton;
+    LayoutGroupTranslatorOllama: TdxLayoutGroup;
+    LayoutItemOllamaBaseURL: TdxLayoutItem;
+    LayoutItemOllamaModel: TdxLayoutItem;
+    LayoutItemOllamaTimeout: TdxLayoutItem;
+    LayoutItemOllamaDetectModels: TdxLayoutItem;
+    LayoutItemOllamaTest: TdxLayoutItem;
+    ActionOllamaDetectModels: TAction;
+    ActionOllamaTest: TAction;
     procedure TextEditTranslatorMSAPIKeyPropertiesButtonClick(Sender: TObject; AButtonIndex: Integer);
     procedure TextEditTranslatorMSAPIKeyPropertiesChange(Sender: TObject);
     procedure ActionCategoryExecute(Sender: TObject);
@@ -398,6 +411,10 @@ type
     procedure PaintBoxColorSamplePaint(Sender: TObject);
     procedure EditTranslatorDeepLAPIKeyPropertiesButtonClick(Sender: TObject; AButtonIndex: Integer);
     procedure EditTranslatorDeepLAPIKeyPropertiesChange(Sender: TObject);
+    procedure EditOllamaBaseURLPropertiesButtonClick(Sender: TObject; AButtonIndex: Integer);
+    procedure EditOllamaBaseURLPropertiesChange(Sender: TObject);
+    procedure ButtonOllamaDetectModelsClick(Sender: TObject);
+    procedure ButtonOllamaTestClick(Sender: TObject);
   private
     FSpellCheckerAutoCorrectOptions: TdxSpellCheckerAutoCorrectOptions;
     FRestartRequired: boolean;
@@ -481,6 +498,9 @@ uses
   Types, UITypes,
   IOUtils,
   Math,
+  System.NetEncoding,
+  System.Net.HttpClient,
+  System.JSON,
 
   dxSkinsdxRibbonPainter,
 
@@ -508,7 +528,8 @@ uses
   amLocalization.Data.Main,
   amLocalization.Environment,
   amLocalization.Provider.Microsoft.Version3,
-  amLocalization.Provider.DeepL;
+  amLocalization.Provider.DeepL,
+  amLocalization.Provider.Ollama;
 
 resourcestring
   sValueRequired = 'Value required';
@@ -672,6 +693,10 @@ begin
   ActionProviderDeepLLicenseFree.Checked := not TranslationManagerSettings.Providers.Deepl.ProVersion;
   ActionProviderDeepLLicensePro.Checked := TranslationManagerSettings.Providers.Deepl.ProVersion;
 
+  EditOllamaBaseURL.Text := TranslationManagerSettings.Providers.Ollama.BaseURL;
+  ComboBoxOllamaModel.Text := TranslationManagerSettings.Providers.Ollama.Model;
+  EditOllamaTimeout.Value := TranslationManagerSettings.Providers.Ollama.Timeout;
+
   (*
   ** Files section
   *)
@@ -766,6 +791,10 @@ begin
 
   TranslationManagerSettings.Providers.Deepl.APIKey := EditTranslatorDeepLAPIKey.Text;
   TranslationManagerSettings.Providers.Deepl.ProVersion := ActionProviderDeepLLicensePro.Checked;
+
+  TranslationManagerSettings.Providers.Ollama.BaseURL := EditOllamaBaseURL.Text;
+  TranslationManagerSettings.Providers.Ollama.Model := ComboBoxOllamaModel.Text;
+  TranslationManagerSettings.Providers.Ollama.Timeout := EditOllamaTimeout.Value;
 
   (*
   ** Files section
@@ -1758,6 +1787,186 @@ procedure TFormSettings.EditTranslatorDeepLAPIKeyPropertiesChange(Sender: TObjec
 begin
   // API key no longer validated
   EditTranslatorDeepLAPIKey.Properties.Buttons[0].ImageIndex := 0;
+end;
+
+// -----------------------------------------------------------------------------
+//
+// Ollama provider handlers
+//
+// -----------------------------------------------------------------------------
+
+procedure TFormSettings.EditOllamaBaseURLPropertiesButtonClick(Sender: TObject; AButtonIndex: Integer);
+var
+  TranslationProvider: ITranslationProviderOllama;
+  ErrorMessage: string;
+begin
+  EditOllamaBaseURL.Properties.Buttons[AButtonIndex].ImageIndex := 0;
+
+  TranslationProvider := TTranslationProviderOllama.Create;
+  try
+    if TranslationProvider.ValidateConnection(EditOllamaBaseURL.Text, ErrorMessage) then
+    begin
+      EditOllamaBaseURL.Properties.Buttons[AButtonIndex].ImageIndex := 1;
+      MessageDlg('Successfully connected to Ollama server.', mtInformation, [mbOK], 0);
+    end else
+      MessageDlg(Format('Connection failed: %s', [ErrorMessage]), mtWarning, [mbOK], 0);
+  finally
+    TranslationProvider := nil;
+  end;
+end;
+
+procedure TFormSettings.EditOllamaBaseURLPropertiesChange(Sender: TObject);
+begin
+  // URL no longer validated
+  EditOllamaBaseURL.Properties.Buttons[0].ImageIndex := 0;
+end;
+
+procedure TFormSettings.ButtonOllamaDetectModelsClick(Sender: TObject);
+var
+  HTTPClient: THTTPClient;
+  HTTPResponse: IHTTPResponse;
+  JSONResponse: TJSONObject;
+  JSONModels: TJSONArray;
+  JSONModel: TJSONObject;
+  I: Integer;
+  URL: string;
+  BaseURL: string;
+  ModelName: string;
+  CurrentModel: string;
+begin
+  ComboBoxOllamaModel.Properties.Items.Clear;
+
+  BaseURL := EditOllamaBaseURL.Text.Trim;
+  if BaseURL.IsEmpty then
+  begin
+    MessageDlg('Please enter the Ollama Base URL first.', mtWarning, [mbOK], 0);
+    Exit;
+  end;
+
+  HTTPClient := THTTPClient.Create;
+  try
+    HTTPClient.ConnectionTimeout := 5000;
+    HTTPClient.ResponseTimeout := 5000;
+
+    URL := BaseURL.TrimRight(['/']) + '/api/tags';
+
+    try
+      HTTPResponse := HTTPClient.Get(URL);
+
+      if HTTPResponse.StatusCode <> 200 then
+      begin
+        MessageDlg(Format('Failed to query models: %s', [HTTPResponse.StatusText]), mtError, [mbOK], 0);
+        Exit;
+      end;
+
+      JSONResponse := TJSONObject.ParseJSONValue(HTTPResponse.ContentAsString(TEncoding.UTF8)) as TJSONObject;
+      if JSONResponse = nil then
+      begin
+        MessageDlg('Invalid JSON response from Ollama server.', mtError, [mbOK], 0);
+        Exit;
+      end;
+
+      try
+        JSONModels := JSONResponse.GetValue('models') as TJSONArray;
+        if JSONModels = nil then
+        begin
+          MessageDlg('No models found in response.', mtWarning, [mbOK], 0);
+          Exit;
+        end;
+
+        CurrentModel := ComboBoxOllamaModel.Text;
+
+        for I := 0 to JSONModels.Count - 1 do
+        begin
+          JSONModel := JSONModels.Items[I] as TJSONObject;
+          if JSONModel <> nil then
+          begin
+            ModelName := JSONModel.GetValue<string>('name');
+            ComboBoxOllamaModel.Properties.Items.Add(ModelName);
+          end;
+        end;
+
+        if ComboBoxOllamaModel.Properties.Items.Count > 0 then
+        begin
+          // Try to restore previous selection
+          if (CurrentModel <> '') and (ComboBoxOllamaModel.Properties.Items.IndexOf(CurrentModel) >= 0) then
+            ComboBoxOllamaModel.Text := CurrentModel
+          else
+            ComboBoxOllamaModel.ItemIndex := 0;
+
+          MessageDlg(Format('Found %d model(s).', [ComboBoxOllamaModel.Properties.Items.Count]), mtInformation, [mbOK], 0);
+        end else
+          MessageDlg('No models found. Install models with: ollama pull <model-name>', mtWarning, [mbOK], 0);
+
+      finally
+        JSONResponse.Free;
+      end;
+
+    except
+      on E: Exception do
+        MessageDlg(Format('Failed to connect to Ollama server: %s', [E.Message]), mtError, [mbOK], 0);
+    end;
+
+  finally
+    HTTPClient.Free;
+  end;
+end;
+
+procedure TFormSettings.ButtonOllamaTestClick(Sender: TObject);
+var
+  TranslationProvider: ITranslationProviderOllama;
+  ErrorMessage: string;
+  BaseURL: string;
+  ModelName: string;
+  AllTestsPassed: Boolean;
+begin
+  BaseURL := EditOllamaBaseURL.Text.Trim;
+  ModelName := ComboBoxOllamaModel.Text.Trim;
+
+  if BaseURL.IsEmpty then
+  begin
+    MessageDlg('Please enter the Ollama Base URL first.', mtWarning, [mbOK], 0);
+    Exit;
+  end;
+
+  if ModelName.IsEmpty then
+  begin
+    MessageDlg('Please select or enter a model name first.', mtWarning, [mbOK], 0);
+    Exit;
+  end;
+
+  TranslationProvider := TTranslationProviderOllama.Create;
+  try
+    AllTestsPassed := True;
+
+    // Test 1: Connection
+    if not TranslationProvider.ValidateConnection(BaseURL, ErrorMessage) then
+    begin
+      MessageDlg(Format('Connection test failed: %s', [ErrorMessage]), mtError, [mbOK], 0);
+      AllTestsPassed := False;
+    end
+    // Test 2: Model validation
+    else if not TranslationProvider.ValidateModel(BaseURL, ModelName, ErrorMessage) then
+    begin
+      MessageDlg(Format('Model validation failed: %s', [ErrorMessage]), mtError, [mbOK], 0);
+      AllTestsPassed := False;
+    end
+    // Test 3: Translation test
+    else if not TranslationProvider.TestTranslation(BaseURL, ModelName, ErrorMessage) then
+    begin
+      MessageDlg(Format('Translation test failed: %s', [ErrorMessage]), mtError, [mbOK], 0);
+      AllTestsPassed := False;
+    end;
+
+    if AllTestsPassed then
+      MessageDlg('All tests passed successfully!' + #13#10 +
+                 '- Connection: OK' + #13#10 +
+                 '- Model available: OK' + #13#10 +
+                 '- Translation: OK', mtInformation, [mbOK], 0);
+
+  finally
+    TranslationProvider := nil;
+  end;
 end;
 
 // -----------------------------------------------------------------------------

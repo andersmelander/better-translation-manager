@@ -209,11 +209,25 @@ type
     property ProVersion: boolean read FProVersion write FProVersion;
   end;
 
+  TTranslationManagerProviderOllamaSettings = class(TConfigurationSection)
+  private
+    FBaseURL: string;
+    FModel: string;
+    FTimeout: integer;
+  protected
+    procedure ApplyDefault; override;
+  published
+    property BaseURL: string read FBaseURL write FBaseURL;
+    property Model: string read FModel write FModel;
+    property Timeout: integer read FTimeout write FTimeout default 30000;
+  end;
+
   TTranslationManagerProviderSettings = class(TConfigurationSection)
   private
     FMicrosoftV3: TTranslationManagerProviderMicrosoftTranslatorV3Settings;
     FTranslationMemory: TTranslationManagerProviderTM;
     FDeepL: TTranslationManagerProviderDeepLSettings;
+    FOllama: TTranslationManagerProviderOllamaSettings;
   public
     constructor Create(AOwner: TConfigurationSection); override;
     destructor Destroy; override;
@@ -222,6 +236,7 @@ type
     property MicrosoftTranslatorV3: TTranslationManagerProviderMicrosoftTranslatorV3Settings read FMicrosoftV3;
     property TranslationMemory: TTranslationManagerProviderTM read FTranslationMemory;
     property DeepL: TTranslationManagerProviderDeepLSettings read FDeepL;
+    property Ollama: TTranslationManagerProviderOllamaSettings read FOllama;
   end;
 
   TTranslationManagerProofingSettings = class(TConfigurationSection)
@@ -963,10 +978,12 @@ begin
   FMicrosoftV3 := TTranslationManagerProviderMicrosoftTranslatorV3Settings.Create(Self);
   FTranslationMemory := TTranslationManagerProviderTM.Create(Self);
   FDeepL := TTranslationManagerProviderDeepLSettings.Create(Self);
+  FOllama := TTranslationManagerProviderOllamaSettings.Create(Self);
 end;
 
 destructor TTranslationManagerProviderSettings.Destroy;
 begin
+  FOllama.Free;
   FDeepL.Free;
   FMicrosoftV3.Free;
   FTranslationMemory.Free;
@@ -979,6 +996,7 @@ begin
 
   FMicrosoftV3.ApplyDefault;
   FTranslationMemory.ApplyDefault;
+  FOllama.ApplyDefault;
 end;
 
 { TTranslationManagerProviderTM }
@@ -988,6 +1006,17 @@ begin
   inherited;
 
   FFilename := '%DATA%\' + sTranslationMemoryFilename;
+end;
+
+{ TTranslationManagerProviderOllamaSettings }
+
+procedure TTranslationManagerProviderOllamaSettings.ApplyDefault;
+begin
+  inherited;
+
+  FBaseURL := 'http://localhost:11434';
+  FModel := '';
+  FTimeout := 30000; // 30 seconds
 end;
 
 { TTranslationManagerLayoutSettings }

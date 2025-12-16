@@ -91,6 +91,64 @@ inherited FormSettings: TFormSettings
       Visible = False
       Width = 371
     end
+    object EditOllamaBaseURL: TcxButtonEdit [1]
+      Left = 10000
+      Top = 10000
+      Properties.Buttons = <
+        item
+          ImageIndex = 0
+          Hint = 'Test connection'
+          Kind = bkGlyph
+        end>
+      Properties.Images = ImageList
+      Properties.OnButtonClick = EditOllamaBaseURLPropertiesButtonClick
+      Properties.OnChange = EditOllamaBaseURLPropertiesChange
+      Style.HotTrack = False
+      Style.TransparentBorder = False
+      TabOrder = 35
+      Visible = False
+      Width = 371
+    end
+    object ComboBoxOllamaModel: TcxComboBox [2]
+      Left = 10000
+      Top = 10000
+      Style.HotTrack = False
+      Style.TransparentBorder = False
+      TabOrder = 36
+      Visible = False
+      Width = 250
+    end
+    object EditOllamaTimeout: TcxSpinEdit [3]
+      Left = 10000
+      Top = 10000
+      Properties.MinValue = 5000.000000000000000000
+      Properties.MaxValue = 300000.000000000000000000
+      Style.HotTrack = False
+      Style.TransparentBorder = False
+      TabOrder = 37
+      Visible = False
+      Width = 100
+    end
+    object ButtonOllamaDetectModels: TcxButton [4]
+      Left = 10000
+      Top = 10000
+      Width = 120
+      Height = 25
+      Caption = 'Detect Models'
+      TabOrder = 38
+      Visible = False
+      OnClick = ButtonOllamaDetectModelsClick
+    end
+    object ButtonOllamaTest: TcxButton [5]
+      Left = 10000
+      Top = 10000
+      Width = 120
+      Height = 25
+      Caption = 'Test'
+      TabOrder = 39
+      Visible = False
+      OnClick = ButtonOllamaTestClick
+    end
     object CheckBoxEditUseProposed: TcxCheckBox [1]
       Left = 10000
       Top = 10000
@@ -2703,6 +2761,57 @@ inherited FormSettings: TFormSettings
       ShowBorder = False
       Index = 1
     end
+    object LayoutGroupTranslatorOllama: TdxLayoutGroup
+      Parent = LayoutGroupCategoryProviders
+      CaptionOptions.Text = 'Ollama (Local LLM)'
+      ButtonOptions.ShowExpandButton = True
+      Index = 3
+    end
+    object LayoutItemOllamaBaseURL: TdxLayoutItem
+      Parent = LayoutGroupTranslatorOllama
+      CaptionOptions.Text = 'Base URL:'
+      Control = EditOllamaBaseURL
+      ControlOptions.OriginalHeight = 21
+      ControlOptions.OriginalWidth = 371
+      ControlOptions.ShowBorder = False
+      Index = 0
+    end
+    object LayoutItemOllamaModel: TdxLayoutItem
+      Parent = LayoutGroupTranslatorOllama
+      CaptionOptions.Text = 'Model:'
+      Control = ComboBoxOllamaModel
+      ControlOptions.OriginalHeight = 21
+      ControlOptions.OriginalWidth = 250
+      ControlOptions.ShowBorder = False
+      Index = 1
+    end
+    object LayoutItemOllamaTimeout: TdxLayoutItem
+      Parent = LayoutGroupTranslatorOllama
+      CaptionOptions.Text = 'Timeout (ms):'
+      Control = EditOllamaTimeout
+      ControlOptions.OriginalHeight = 21
+      ControlOptions.OriginalWidth = 100
+      ControlOptions.ShowBorder = False
+      Index = 2
+    end
+    object LayoutItemOllamaDetectModels: TdxLayoutItem
+      Parent = LayoutGroupTranslatorOllama
+      CaptionOptions.Visible = False
+      Control = ButtonOllamaDetectModels
+      ControlOptions.OriginalHeight = 25
+      ControlOptions.OriginalWidth = 120
+      ControlOptions.ShowBorder = False
+      Index = 3
+    end
+    object LayoutItemOllamaTest: TdxLayoutItem
+      Parent = LayoutGroupTranslatorOllama
+      CaptionOptions.Visible = False
+      Control = ButtonOllamaTest
+      ControlOptions.OriginalHeight = 25
+      ControlOptions.OriginalWidth = 120
+      ControlOptions.ShowBorder = False
+      Index = 4
+    end
     object dxLayoutItem26: TdxLayoutItem
       Parent = dxLayoutGroup25
       CaptionOptions.Visible = False
@@ -2810,6 +2919,16 @@ inherited FormSettings: TFormSettings
       AutoCheck = True
       Caption = 'Pro version'
       OnExecute = ActionDummyExecute
+    end
+    object ActionOllamaDetectModels: TAction
+      Category = 'Providers'
+      Caption = 'Detect Models'
+      OnExecute = ButtonOllamaDetectModelsClick
+    end
+    object ActionOllamaTest: TAction
+      Category = 'Providers'
+      Caption = 'Test Connection'
+      OnExecute = ButtonOllamaTestClick
     end
   end
   object PopupMenuFolderReset: TPopupMenu
