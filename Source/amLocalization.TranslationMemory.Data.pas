@@ -891,7 +891,6 @@ var
   Duplicate: TDuplicate;
   i: integer;
   s: string;
-  DuplicateFound: boolean;
   DuplicateTermPair: TPair<TField, TDuplicateTerms>;
   SourceLanguage, TargetLanguage: TLanguageItem;
   SourceLanguageName, TargetLanguageName: string;
