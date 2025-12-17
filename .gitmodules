@@ -1,3 +1,6 @@
 [submodule "Source/Externals/VirtualTreeView"]
 	path = Source/Externals/VirtualTreeView
 	url = https://github.com/JAM-Software/Virtual-TreeView.git
+[submodule "Source/Externals/DUnitX"]
+	path = Source/Externals/DUnitX
+	url = https://github.com/VSoftTechnologies/DUnitX.git

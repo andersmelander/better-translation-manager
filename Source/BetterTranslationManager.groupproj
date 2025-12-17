@@ -12,6 +12,9 @@
         <Projects Include="..\Examples\HelloWorld\HelloWorld.dproj">
             <Dependencies/>
         </Projects>
+        <Projects Include="Tests\amLocalization.Tests.dproj">
+            <Dependencies/>
+        </Projects>
     </ItemGroup>
     <ProjectExtensions>
         <Borland.Personality>Default.Personality.12</Borland.Personality>
@@ -47,14 +50,23 @@
     <Target Name="HelloWorld:Make">
         <MSBuild Projects="..\Examples\HelloWorld\HelloWorld.dproj" Targets="Make"/>
     </Target>
+    <Target Name="amLocalization_Tests">
+        <MSBuild Projects="Tests\amLocalization.Tests.dproj"/>
+    </Target>
+    <Target Name="amLocalization_Tests:Clean">
+        <MSBuild Projects="Tests\amLocalization.Tests.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="amLocalization_Tests:Make">
+        <MSBuild Projects="Tests\amLocalization.Tests.dproj" Targets="Make"/>
+    </Target>
     <Target Name="Build">
-        <CallTarget Targets="amTranslationManager;amResourceModuleBuilder;HelloWorld"/>
+        <CallTarget Targets="amTranslationManager;amResourceModuleBuilder;HelloWorld;amLocalization_Tests"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="amTranslationManager:Clean;amResourceModuleBuilder:Clean;HelloWorld:Clean"/>
+        <CallTarget Targets="amTranslationManager:Clean;amResourceModuleBuilder:Clean;HelloWorld:Clean;amLocalization_Tests:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="amTranslationManager:Make;amResourceModuleBuilder:Make;HelloWorld:Make"/>
+        <CallTarget Targets="amTranslationManager:Make;amResourceModuleBuilder:Make;HelloWorld:Make;amLocalization_Tests:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>
