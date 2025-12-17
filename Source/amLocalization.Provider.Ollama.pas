@@ -1,7 +1,7 @@
 ﻿unit amLocalization.Provider.Ollama;
 
 (*
- * Copyright © 2025 Anders Melander
+ * Copyright © 2025 Basti-Fantasti
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -16,15 +16,8 @@ uses
 
   amLanguageInfo,
   amLocalization.Model,
-  amLocalization.Provider;
-
-type
-  ITranslationProviderOllama = interface
-    ['{8B7C4A2E-F3D1-4B9A-9C5E-1D8A3F6B2E4C}']
-    function ValidateConnection(const BaseURL: string; var ErrorMessage: string): boolean;
-    function ValidateModel(const BaseURL, ModelName: string; var ErrorMessage: string): boolean;
-    function TestTranslation(const BaseURL, ModelName: string; var ErrorMessage: string): boolean;
-  end;
+  amLocalization.Provider,
+  amLocalization.Provider.Ollama.API;
 
 // -----------------------------------------------------------------------------
 //
@@ -35,27 +28,36 @@ type
 type
   TTranslationProviderOllama = class(TInterfacedObject, ITranslationProvider, ITranslationProviderOllama)
   private
-    function GetOllamaBaseURL: string;
-    function GetOllamaModel: string;
-    function GetOllamaTimeout: integer;
+    FSettings: ITranslationProviderSettingsOllama;
+
+  private
+    function GetBaseURL: string;
+    function GetModelName: string;
+    function GetTimeout: integer;
     function TranslateText(const ASourceLang, ATargetLang, AText: string): string;
-    function ExtractTranslation(const RawResponse: string): string;
+    function ExtractTranslation(const ARawResponse: string): string;
     function BuildPrompt(const ASourceLang, ATargetLang, AText: string): string;
-  protected
+
+  private
     // ITranslationProvider
-    function BeginLookup(SourceLanguage, TargetLanguage: TLanguageItem): boolean;
-    function Lookup(Prop: TLocalizerProperty; SourceLanguage, TargetLanguage: TLanguageItem; Translations: TStrings): boolean;
+    function BeginLookup(ASourceLanguage, ATargetLanguage: TLanguageItem): boolean;
+    function Lookup(AProp: TLocalizerProperty; ASourceLanguage, ATargetLanguage: TLanguageItem; ATranslations: TStrings): boolean;
     procedure EndLookup;
     function GetProviderName: string;
 
+  private
     // ITranslationProviderOllama
-    function ValidateConnection(const BaseURL: string; var ErrorMessage: string): boolean;
-    function ValidateModel(const BaseURL, ModelName: string; var ErrorMessage: string): boolean;
-    function TestTranslation(const BaseURL, ModelName: string; var ErrorMessage: string): boolean;
+    function ValidateConnection(var AErrorMessage: string): boolean;
+    function ValidateModel(var AErrorMessage: string): boolean;
+    function TestTranslation(var AErrorMessage: string): boolean;
+    function GetModels(AModelNames: TStrings; var AErrorMessage: string): boolean;
+
+  private
+    property BaseURL: string read GetBaseURL;
+    property ModelName: string read GetModelName;
+    property Timeout: integer read GetTimeout;
   public
-    property OllamaBaseURL: string read GetOllamaBaseURL;
-    property OllamaModel: string read GetOllamaModel;
-    property OllamaTimeout: integer read GetOllamaTimeout;
+    constructor Create(const ASettings: ITranslationProviderSettingsOllama = nil);
   end;
 
 implementation
@@ -75,7 +77,7 @@ resourcestring
   // Error messages
   sOllamaErrorNoServer = 'Cannot connect to Ollama server at %s';
   sOllamaErrorInvalidURL = 'Invalid Ollama server URL';
-  sOllamaErrorModelNotFound = 'Model "%s" not found. Install it with: ollama pull %s';
+  sOllamaErrorModelNotFound = 'Model "%0:s" not found. Install it with: ollama pull %0:s';
   sOllamaErrorTimeout = 'Translation timeout after %d seconds. Consider increasing timeout or using a smaller model.';
   sOllamaErrorInvalidResponse = 'Invalid response from Ollama server';
   sOllamaErrorServerError = 'Ollama server error: %s';
@@ -93,19 +95,84 @@ type
 //
 // -----------------------------------------------------------------------------
 
-function TTranslationProviderOllama.GetOllamaBaseURL: string;
+function TTranslationProviderOllama.GetBaseURL: string;
 begin
-  Result := TranslationManagerSettings.Providers.Ollama.BaseURL;
+  Result := FSettings.BaseURL;
 end;
 
-function TTranslationProviderOllama.GetOllamaModel: string;
+function TTranslationProviderOllama.GetModelName: string;
 begin
-  Result := TranslationManagerSettings.Providers.Ollama.Model;
+  Result := FSettings.ModelName;
 end;
 
-function TTranslationProviderOllama.GetOllamaTimeout: integer;
+function TTranslationProviderOllama.GetModels(AModelNames: TStrings; var AErrorMessage: string): boolean;
 begin
-  Result := TranslationManagerSettings.Providers.Ollama.Timeout;
+  Result := False;
+  AModelNames.Clear;
+
+  var HTTPClient := THTTPClient.Create;
+  try
+    HTTPClient.ConnectionTimeout := Timeout;
+    HTTPClient.ResponseTimeout := Timeout;
+
+    var URL := BaseURL.TrimRight(['/']) + '/api/tags';
+
+    try
+      var HTTPResponse := HTTPClient.Get(URL);
+
+      if (HTTPResponse.StatusCode <> 200) then
+      begin
+        AErrorMessage := Format('Failed to query models: %s', [HTTPResponse.StatusText]);
+        Exit;
+      end;
+
+      var JSONResponse := TJSONObject.ParseJSONValue(HTTPResponse.ContentAsString(TEncoding.UTF8)) as TJSONObject;
+
+      if (JSONResponse = nil) then
+      begin
+        AErrorMessage := 'Invalid JSON response from Ollama server.';
+        Exit;
+      end;
+
+      try
+        var JSONModels := JSONResponse.GetValue('models') as TJSONArray;
+
+        if (JSONModels = nil) then
+        begin
+          AErrorMessage := 'No models found in response.';
+          Exit;
+        end;
+
+        for var Item in JSONModels do
+        begin
+          var JSONModel := Item as TJSONObject;
+
+          if (JSONModel <> nil) then
+          begin
+            var ModelName := JSONModel.GetValue<string>('name');
+            AModelNames.Add(ModelName);
+          end;
+        end;
+
+        Result := True;
+
+      finally
+        JSONResponse.Free;
+      end;
+
+    except
+      on E: Exception do
+        AErrorMessage := Format('Failed to connect to Ollama server: %s', [E.Message]);
+    end;
+
+  finally
+    HTTPClient.Free;
+  end;
+end;
+
+function TTranslationProviderOllama.GetTimeout: integer;
+begin
+  Result := FSettings.Timeout;
 end;
 
 function TTranslationProviderOllama.GetProviderName: string;
@@ -118,48 +185,51 @@ begin
   Result := TOllamaCore.BuildPrompt(ASourceLang, ATargetLang, AText);
 end;
 
-function TTranslationProviderOllama.ExtractTranslation(const RawResponse: string): string;
+constructor TTranslationProviderOllama.Create(const ASettings: ITranslationProviderSettingsOllama);
 begin
-  Result := TOllamaCore.ExtractTranslation(RawResponse);
+  inherited Create;
+
+  if (ASettings <> nil) then
+    FSettings := ASettings
+  else
+    FSettings := TranslationManagerSettings.Providers.Ollama;
 end;
 
-function TTranslationProviderOllama.ValidateConnection(const BaseURL: string; var ErrorMessage: string): boolean;
-var
-  HTTPClient: THTTPClient;
-  HTTPResponse: IHTTPResponse;
-  URL: string;
+function TTranslationProviderOllama.ExtractTranslation(const ARawResponse: string): string;
+begin
+  Result := TOllamaCore.ExtractTranslation(ARawResponse);
+end;
+
+function TTranslationProviderOllama.ValidateConnection(var AErrorMessage: string): boolean;
 begin
   Result := False;
-  ErrorMessage := '';
+  AErrorMessage := '';
 
   if BaseURL.Trim.IsEmpty then
   begin
-    ErrorMessage := sOllamaErrorInvalidURL;
+    AErrorMessage := sOllamaErrorInvalidURL;
     Exit;
   end;
 
-  HTTPClient := THTTPClient.Create;
+  var HTTPClient := THTTPClient.Create;
   try
     HTTPClient.ConnectionTimeout := 5000; // 5 seconds for connection test
     HTTPClient.ResponseTimeout := 5000;
 
     // Normalize URL
-    URL := BaseURL.TrimRight(['/']) + '/api/tags';
+    var URL := BaseURL.TrimRight(['/']) + '/api/tags';
 
     try
-      HTTPResponse := HTTPClient.Get(URL);
+      var HTTPResponse := HTTPClient.Get(URL);
 
-      if HTTPResponse.StatusCode = 200 then
-      begin
-        Result := True;
-      end else
-      begin
-        ErrorMessage := Format(sOllamaErrorServerError, [HTTPResponse.StatusText]);
-      end;
+      if (HTTPResponse.StatusCode = 200) then
+        Result := True
+      else
+        AErrorMessage := Format(sOllamaErrorServerError, [HTTPResponse.StatusText]);
 
     except
       on E: Exception do
-        ErrorMessage := Format(sOllamaErrorNoServer, [BaseURL]);
+        AErrorMessage := Format(sOllamaErrorNoServer, [BaseURL]);
     end;
 
   finally
@@ -167,75 +237,62 @@ begin
   end;
 end;
 
-function TTranslationProviderOllama.ValidateModel(const BaseURL, ModelName: string; var ErrorMessage: string): boolean;
-var
-  HTTPClient: THTTPClient;
-  HTTPResponse: IHTTPResponse;
-  URL: string;
-  JSONResponse: TJSONObject;
-  JSONModels: TJSONArray;
-  JSONModel: TJSONObject;
-  I: Integer;
-  ModelFound: Boolean;
+function TTranslationProviderOllama.ValidateModel(var AErrorMessage: string): boolean;
 begin
   Result := False;
-  ErrorMessage := '';
+  AErrorMessage := '';
 
   if ModelName.Trim.IsEmpty then
   begin
-    ErrorMessage := sOllamaErrorModelRequired;
+    AErrorMessage := sOllamaErrorModelRequired;
     Exit;
   end;
 
-  HTTPClient := THTTPClient.Create;
+  var HTTPClient := THTTPClient.Create;
   try
     HTTPClient.ConnectionTimeout := 5000;
     HTTPClient.ResponseTimeout := 5000;
 
-    URL := BaseURL.TrimRight(['/']) + '/api/tags';
+    var URL := BaseURL.TrimRight(['/']) + '/api/tags';
 
     try
-      HTTPResponse := HTTPClient.Get(URL);
+      var HTTPResponse := HTTPClient.Get(URL);
 
-      if HTTPResponse.StatusCode <> 200 then
+      if (HTTPResponse.StatusCode <> 200) then
       begin
-        ErrorMessage := Format(sOllamaErrorServerError, [HTTPResponse.StatusText]);
+        AErrorMessage := Format(sOllamaErrorServerError, [HTTPResponse.StatusText]);
         Exit;
       end;
 
-      JSONResponse := TJSONObject.ParseJSONValue(HTTPResponse.ContentAsString(TEncoding.UTF8)) as TJSONObject;
-      if JSONResponse = nil then
+      var JSONResponse := TJSONObject.ParseJSONValue(HTTPResponse.ContentAsString(TEncoding.UTF8)) as TJSONObject;
+
+      if (JSONResponse = nil) then
       begin
-        ErrorMessage := sOllamaErrorInvalidJSON;
+        AErrorMessage := sOllamaErrorInvalidJSON;
         Exit;
       end;
 
       try
-        JSONModels := JSONResponse.GetValue('models') as TJSONArray;
-        if JSONModels = nil then
+        var JSONModels := JSONResponse.GetValue('models') as TJSONArray;
+
+        if (JSONModels = nil) then
         begin
-          ErrorMessage := sOllamaErrorInvalidResponse;
+          AErrorMessage := sOllamaErrorInvalidResponse;
           Exit;
         end;
 
-        ModelFound := False;
-        for I := 0 to JSONModels.Count - 1 do
+        for var Item in JSONModels do
         begin
-          JSONModel := JSONModels.Items[I] as TJSONObject;
-          if JSONModel <> nil then
+          var JSONModel := Item as TJSONObject;
+
+          if (JSONModel <> nil) and (SameText(JSONModel.GetValue<string>('name'), ModelName)) then
           begin
-            if SameText(JSONModel.GetValue<string>('name'), ModelName) then
-            begin
-              ModelFound := True;
-              Break;
-            end;
+            Result := True;
+            Exit;
           end;
         end;
 
-        if ModelFound then
-          Result := True
-        else
-          ErrorMessage := Format(sOllamaErrorModelNotFound, [ModelName, ModelName]);
+        AErrorMessage := Format(sOllamaErrorModelNotFound, [ModelName, ModelName]);
 
       finally
         JSONResponse.Free;
@@ -243,7 +300,7 @@ begin
 
     except
       on E: Exception do
-        ErrorMessage := Format(sOllamaErrorNoServer, [BaseURL]);
+        AErrorMessage := Format(sOllamaErrorNoServer, [BaseURL]);
     end;
 
   finally
@@ -251,26 +308,24 @@ begin
   end;
 end;
 
-function TTranslationProviderOllama.TestTranslation(const BaseURL, ModelName: string; var ErrorMessage: string): boolean;
-var
-  Translation: string;
+function TTranslationProviderOllama.TestTranslation(var AErrorMessage: string): boolean;
 begin
   Result := False;
-  ErrorMessage := '';
+  AErrorMessage := '';
 
   try
-    Translation := TranslateText('English', 'German', 'Hello world');
+    var Translation := TranslateText('English', 'German', 'Hello world');
 
     if Translation.Trim.IsEmpty then
     begin
-      ErrorMessage := sOllamaErrorEmptyResponse;
+      AErrorMessage := sOllamaErrorEmptyResponse;
       Exit;
     end;
 
     // Verify we got a different string (not just echoing input)
     if SameText(Translation.Trim, 'Hello world') then
     begin
-      ErrorMessage := 'Translation appears to be echoing input. Please verify model is working correctly.';
+      AErrorMessage := 'Translation appears to be echoing input. Please verify model is working correctly.';
       Exit;
     end;
 
@@ -278,71 +333,62 @@ begin
 
   except
     on E: EOllamaLocalizationProvider do
-      ErrorMessage := E.Message;
+      AErrorMessage := E.Message;
     on E: Exception do
-      ErrorMessage := 'Unexpected error: ' + E.Message;
+      AErrorMessage := 'Unexpected error: ' + E.Message;
   end;
 end;
 
 function TTranslationProviderOllama.TranslateText(const ASourceLang, ATargetLang, AText: string): string;
-var
-  HTTPClient: THTTPClient;
-  HTTPResponse: IHTTPResponse;
-  RequestJSON: TJSONObject;
-  OptionsJSON: TJSONObject;
-  ResponseJSON: TJSONObject;
-  RequestContent: TStringStream;
-  URL: string;
-  Prompt: string;
-  RawResponse: string;
 begin
   Result := '';
 
   // Validate configuration
-  if OllamaBaseURL.Trim.IsEmpty or OllamaModel.Trim.IsEmpty then
+  if BaseURL.Trim.IsEmpty or ModelName.Trim.IsEmpty then
     raise EOllamaLocalizationProvider.Create(sOllamaErrorConfiguration);
 
   // Build the prompt
-  Prompt := BuildPrompt(ASourceLang, ATargetLang, AText);
+  var Prompt := BuildPrompt(ASourceLang, ATargetLang, AText);
 
   // Create JSON request
-  RequestJSON := TJSONObject.Create;
+  var RequestJSON := TJSONObject.Create;
   try
-    RequestJSON.AddPair('model', OllamaModel);
+    RequestJSON.AddPair('model', ModelName);
     RequestJSON.AddPair('prompt', Prompt);
     RequestJSON.AddPair('stream', TJSONBool.Create(False));
 
     // Add options for consistent translation
-    OptionsJSON := TJSONObject.Create;
+    var OptionsJSON := TJSONObject.Create;
     OptionsJSON.AddPair('temperature', TJSONNumber.Create(0.1));
     OptionsJSON.AddPair('top_p', TJSONNumber.Create(0.9));
     RequestJSON.AddPair('options', OptionsJSON);
 
-    HTTPClient := THTTPClient.Create;
+    var HTTPClient := THTTPClient.Create;
     try
-      HTTPClient.ConnectionTimeout := OllamaTimeout;
-      HTTPClient.ResponseTimeout := OllamaTimeout;
+      HTTPClient.ConnectionTimeout := Timeout;
+      HTTPClient.ResponseTimeout := Timeout;
 
-      URL := OllamaBaseURL.TrimRight(['/']) + '/api/generate';
+      var URL := BaseURL.TrimRight(['/']) + '/api/generate';
 
-      RequestContent := TStringStream.Create(RequestJSON.ToJSON, TEncoding.UTF8);
+      var RequestContent := TStringStream.Create(RequestJSON.ToJSON, TEncoding.UTF8);
       try
         try
-          HTTPResponse := HTTPClient.Post(URL, RequestContent, nil, [TNetHeader.Create('Content-Type', 'application/json')]);
+          var HTTPResponse := HTTPClient.Post(URL, RequestContent, nil, [TNetHeader.Create('Content-Type', 'application/json')]);
 
-          if HTTPResponse = nil then
+          if (HTTPResponse = nil) then
             raise EOllamaLocalizationProvider.Create(sOllamaErrorInvalidResponse);
 
           case HTTPResponse.StatusCode of
             200:
               begin
-                ResponseJSON := TJSONObject.ParseJSONValue(HTTPResponse.ContentAsString(TEncoding.UTF8)) as TJSONObject;
-                if ResponseJSON = nil then
+                var ResponseJSON := TJSONObject.ParseJSONValue(HTTPResponse.ContentAsString(TEncoding.UTF8)) as TJSONObject;
+                if (ResponseJSON = nil) then
                   raise EOllamaLocalizationProvider.Create(sOllamaErrorInvalidJSON);
 
                 try
-                  RawResponse := ResponseJSON.GetValue<string>('response');
-                  if RawResponse.Trim.IsEmpty then
+
+                  var RawResponse := ResponseJSON.GetValue<string>('response');
+                  if (RawResponse.Trim.IsEmpty) then
                     raise EOllamaLocalizationProvider.Create(sOllamaErrorEmptyResponse);
 
                   Result := ExtractTranslation(RawResponse);
@@ -353,7 +399,7 @@ begin
               end;
 
             404:
-              raise EOllamaLocalizationProvider.CreateFmt(sOllamaErrorModelNotFound, [OllamaModel, OllamaModel]);
+              raise EOllamaLocalizationProvider.CreateFmt(sOllamaErrorModelNotFound, [ModelName]);
 
           else
             raise EOllamaLocalizationProvider.CreateFmt(sOllamaErrorServerError, [HTTPResponse.StatusText]);
@@ -362,12 +408,13 @@ begin
         except
           on E: EOllamaLocalizationProvider do
             raise;
+
           on E: Exception do
           begin
             if E.Message.Contains('timeout') or E.Message.Contains('timed out') then
-              raise EOllamaLocalizationProvider.CreateFmt(sOllamaErrorTimeout, [OllamaTimeout div 1000])
+              raise EOllamaLocalizationProvider.CreateFmt(sOllamaErrorTimeout, [Timeout div 1000])
             else
-              raise EOllamaLocalizationProvider.Create(Format(sOllamaErrorNoServer, [OllamaBaseURL]));
+              raise EOllamaLocalizationProvider.Create(Format(sOllamaErrorNoServer, [BaseURL]));
           end;
         end;
 
@@ -384,7 +431,7 @@ begin
   end;
 end;
 
-function TTranslationProviderOllama.BeginLookup(SourceLanguage, TargetLanguage: TLanguageItem): boolean;
+function TTranslationProviderOllama.BeginLookup(ASourceLanguage, ATargetLanguage: TLanguageItem): boolean;
 begin
   Result := True;
 end;
@@ -393,28 +440,26 @@ procedure TTranslationProviderOllama.EndLookup;
 begin
 end;
 
-function TTranslationProviderOllama.Lookup(Prop: TLocalizerProperty;
-  SourceLanguage, TargetLanguage: TLanguageItem;
-  Translations: TStrings): boolean;
-var
-  SourceText: string;
-  TranslatedText: string;
+function TTranslationProviderOllama.Lookup(AProp: TLocalizerProperty;
+  ASourceLanguage, ATargetLanguage: TLanguageItem;
+  ATranslations: TStrings): boolean;
 begin
-  SourceText := Prop.Value;
+  var SourceText := AProp.Value;
 
   // Use EnglishName for language names in the prompt
-  TranslatedText := TranslateText(SourceLanguage.EnglishLanguageName, TargetLanguage.EnglishLanguageName, SourceText);
+  var TranslatedText := TranslateText(ASourceLanguage.EnglishLanguageName, ATargetLanguage.EnglishLanguageName, SourceText);
 
   Result := (TranslatedText <> '');
 
   if (Result) then
-    Translations.Text := TranslatedText;
+    ATranslations.Text := TranslatedText;
 end;
 
 var
   ProviderHandle: integer = -1;
 
 initialization
+
   ProviderHandle := TranslationProviderRegistry.RegisterProvider(sProviderNameOllama,
     function(): ITranslationProvider
     begin

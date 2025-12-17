@@ -30,7 +30,8 @@ uses
   amLocalization.Utils,
   amLocalization.Model,
   amLocalization.StopList,
-  amLocalization.Normalization;
+  amLocalization.Normalization,
+  amLocalization.Provider.Ollama.Settings;
 
 
 //------------------------------------------------------------------------------
@@ -72,6 +73,7 @@ type
   protected
     procedure ReadSection(const Key: string); override;
     procedure WriteSection(const Key: string); override;
+    procedure ApplyDefault; override;
   public
     function ApplySettings(Form: TCustomForm): boolean;
     function PrepareSettings(Form: TCustomForm): boolean;
@@ -207,19 +209,6 @@ type
   published
     property APIKey: string read FAPIKey write FAPIKey;
     property ProVersion: boolean read FProVersion write FProVersion;
-  end;
-
-  TTranslationManagerProviderOllamaSettings = class(TConfigurationSection)
-  private
-    FBaseURL: string;
-    FModel: string;
-    FTimeout: integer;
-  protected
-    procedure ApplyDefault; override;
-  published
-    property BaseURL: string read FBaseURL write FBaseURL;
-    property Model: string read FModel write FModel;
-    property Timeout: integer read FTimeout write FTimeout default 30000;
   end;
 
   TTranslationManagerProviderSettings = class(TConfigurationSection)
@@ -627,6 +616,18 @@ uses
 type
   TFormCracker = class(TCustomForm);
 
+procedure TCustomFormSettings.ApplyDefault;
+begin
+  inherited;
+
+  FValid := False;
+//  FLeft := FForm.ExplicitLeft;
+//  FTop := FForm.ExplicitTop;
+  FWidth := -1;
+  FHeight := -1;
+  FMaximized := False;
+end;
+
 function TCustomFormSettings.ApplySettings(Form: TCustomForm): boolean;
 var
   Monitor: TMonitor;
@@ -717,14 +718,7 @@ end;
 
 procedure TCustomFormSettings.ResetSettings;
 begin
-  ApplyDefault;
-
-  Valid := False;
-//  FLeft := FForm.ExplicitLeft;
-//  FTop := FForm.ExplicitTop;
-  FWidth := -1;
-  FHeight := -1;
-  FMaximized := False;
+  Reset;
 end;
 
 //------------------------------------------------------------------------------
@@ -760,10 +754,7 @@ end;
 
 procedure TTranslationManagerFolderSettings.ResetSettings;
 begin
-  ApplyDefault;
-
-  FRecentFiles.Clear;
-  FRecentApplications.Clear;
+  Reset;
 end;
 
 procedure TTranslationManagerFolderSettings.ReadSection(const Key: string);
@@ -992,11 +983,7 @@ end;
 
 procedure TTranslationManagerProviderSettings.ResetSettings;
 begin
-  ApplyDefault;
-
-  FMicrosoftV3.ApplyDefault;
-  FTranslationMemory.ApplyDefault;
-  FOllama.ApplyDefault;
+  Reset; // This recurses to call ApplyDefault on child sections
 end;
 
 { TTranslationManagerProviderTM }
@@ -1006,17 +993,6 @@ begin
   inherited;
 
   FFilename := '%DATA%\' + sTranslationMemoryFilename;
-end;
-
-{ TTranslationManagerProviderOllamaSettings }
-
-procedure TTranslationManagerProviderOllamaSettings.ApplyDefault;
-begin
-  inherited;
-
-  FBaseURL := 'http://localhost:11434';
-  FModel := '';
-  FTimeout := 30000; // 30 seconds
 end;
 
 { TTranslationManagerLayoutSettings }
@@ -1227,7 +1203,7 @@ end;
 
 procedure TTranslationManagerStyleSettings.ResetSettings;
 begin
-  ApplyDefault;
+  Reset;
 end;
 
 { TTranslationManagerEditorSettings }

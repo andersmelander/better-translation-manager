@@ -32,6 +32,7 @@ uses
   dxSpellChecker,
 
   amLocalization.Settings,
+  amLocalization.Provider.Ollama.API,
   amLocalization.Dialog,
   amLocalization.Dialog.Settings.API;
 
@@ -46,7 +47,7 @@ type
   end;
 
 type
-  TFormSettings = class(TFormDialog, IDialogSettings)
+  TFormSettings = class(TFormDialog, IDialogSettings, ITranslationProviderSettingsOllama)
     ActionFoldersModify: TAction;
     ActionFolderReset: TAction;
     ActionFoldersExplorer: TAction;
@@ -482,6 +483,16 @@ type
     // IDialogSettings
     function Execute(ASpellChecker: TdxSpellChecker; ARibbonStyle: TdxRibbonStyle): boolean;
     function GetRestartRequired: boolean;
+
+  private
+    // ITranslationProviderSettingsOllama
+    function GetOllamaBaseURL: string;
+    function GetOllamaModelName: string;
+    function GetOllamaTimeout: integer;
+    function ITranslationProviderSettingsOllama.GetBaseURL = GetOllamaBaseURL;
+    function ITranslationProviderSettingsOllama.GetModelName = GetOllamaModelName;
+    function ITranslationProviderSettingsOllama.GetTimeout = GetOllamaTimeout;
+
   public
     constructor Create(Awner: TComponent); override;
     destructor Destroy; override;
@@ -564,6 +575,12 @@ begin
   GridColorsTableView.DataController.RecordCount := Ord(High(TListStyle))+1;
   for Style := Low(TListStyle) to High(TListStyle) do
     GridColorsTableView.DataController.Values[Ord(Style), 0] := TranslationManagerSettings.Editor.Style[Style].Name;
+
+  // Ensure that all provider groups are collapsed in case we forgot to do it
+  // at design-time.
+  for var i := 0 to LayoutGroupCategoryProviders.Count-1 do
+    if (LayoutGroupCategoryProviders[i] is TdxLayoutGroup) then
+      TdxLayoutGroup(LayoutGroupCategoryProviders[i]).Expanded := False;
 end;
 
 destructor TFormSettings.Destroy;
@@ -696,7 +713,7 @@ begin
   ActionProviderDeepLLicensePro.Checked := TranslationManagerSettings.Providers.Deepl.ProVersion;
 
   EditOllamaBaseURL.Text := TranslationManagerSettings.Providers.Ollama.BaseURL;
-  ComboBoxOllamaModel.Text := TranslationManagerSettings.Providers.Ollama.Model;
+  ComboBoxOllamaModel.Text := TranslationManagerSettings.Providers.Ollama.ModelName;
   EditOllamaTimeout.Value := TranslationManagerSettings.Providers.Ollama.Timeout;
 
   (*
@@ -795,7 +812,7 @@ begin
   TranslationManagerSettings.Providers.Deepl.ProVersion := ActionProviderDeepLLicensePro.Checked;
 
   TranslationManagerSettings.Providers.Ollama.BaseURL := EditOllamaBaseURL.Text;
-  TranslationManagerSettings.Providers.Ollama.Model := ComboBoxOllamaModel.Text;
+  TranslationManagerSettings.Providers.Ollama.ModelName := ComboBoxOllamaModel.Text;
   TranslationManagerSettings.Providers.Ollama.Timeout := EditOllamaTimeout.Value;
 
   (*
@@ -990,6 +1007,23 @@ begin
     GridSynthesizeTableView.DataController.Values[i, GridSynthesizeTableViewColumnValue.Index] :=
       TranslationManagerSettings.Parser.Synthesize.Rules[i].PropertyValue;
   end;
+end;
+
+// -----------------------------------------------------------------------------
+
+function TFormSettings.GetOllamaBaseURL: string;
+begin
+  Result := EditOllamaBaseURL.Text;
+end;
+
+function TFormSettings.GetOllamaModelName: string;
+begin
+  Result := ComboBoxOllamaModel.Text;
+end;
+
+function TFormSettings.GetOllamaTimeout: integer;
+begin
+  Result := EditOllamaTimeout.Value;
 end;
 
 // -----------------------------------------------------------------------------
@@ -1806,9 +1840,9 @@ begin
 
   SaveCursor(crAppStart);
 
-  TranslationProvider := TTranslationProviderOllama.Create;
+  TranslationProvider := TTranslationProviderOllama.Create(Self);
   try
-    if TranslationProvider.ValidateConnection(EditOllamaBaseURL.Text, ErrorMessage) then
+    if TranslationProvider.ValidateConnection(ErrorMessage) then
     begin
       EditOllamaBaseURL.Properties.Buttons[AButtonIndex].ImageIndex := 1;
       MessageDlg('Successfully connected to Ollama server.', mtInformation, [mbOK], 0);
@@ -1826,116 +1860,44 @@ begin
 end;
 
 procedure TFormSettings.ButtonOllamaDetectModelsClick(Sender: TObject);
-var
-  HTTPClient: THTTPClient;
-  HTTPResponse: IHTTPResponse;
-  JSONResponse: TJSONObject;
-  JSONModels: TJSONArray;
-  JSONModel: TJSONObject;
-  I: Integer;
-  URL: string;
-  BaseURL: string;
-  ModelName: string;
-  CurrentModel: string;
 begin
-  ComboBoxOllamaModel.Properties.Items.Clear;
-
-  BaseURL := string(EditOllamaBaseURL.Text).Trim;
-  if BaseURL.IsEmpty then
+  if GetOllamaBaseURL.Trim.IsEmpty then
   begin
     MessageDlg('Please enter the Ollama Base URL first.', mtWarning, [mbOK], 0);
     Exit;
   end;
 
-  SaveCursor(crHourGlass);
-
-  HTTPClient := THTTPClient.Create;
+  var TranslationProvider: ITranslationProviderOllama := TTranslationProviderOllama.Create(Self);
   try
-    HTTPClient.ConnectionTimeout := 5000;
-    HTTPClient.ResponseTimeout := 5000;
+    SaveCursor(crHourGlass);
 
-    URL := BaseURL.TrimRight(['/']) + '/api/tags';
+    var CurrentModel := ComboBoxOllamaModel.Text;
+    var ErrorMessage: string;
 
-    try
-      HTTPResponse := HTTPClient.Get(URL);
-
-      if HTTPResponse.StatusCode <> 200 then
-      begin
-        MessageDlg(Format('Failed to query models: %s', [HTTPResponse.StatusText]), mtError, [mbOK], 0);
-        Exit;
-      end;
-
-      JSONResponse := TJSONObject.ParseJSONValue(HTTPResponse.ContentAsString(TEncoding.UTF8)) as TJSONObject;
-      if JSONResponse = nil then
-      begin
-        MessageDlg('Invalid JSON response from Ollama server.', mtError, [mbOK], 0);
-        Exit;
-      end;
-
-      try
-        JSONModels := JSONResponse.GetValue('models') as TJSONArray;
-        if JSONModels = nil then
-        begin
-          MessageDlg('No models found in response.', mtWarning, [mbOK], 0);
-          Exit;
-        end;
-
-        CurrentModel := ComboBoxOllamaModel.Text;
-
-        for I := 0 to JSONModels.Count - 1 do
-        begin
-          JSONModel := JSONModels.Items[I] as TJSONObject;
-          if JSONModel <> nil then
-          begin
-            ModelName := JSONModel.GetValue<string>('name');
-            ComboBoxOllamaModel.Properties.Items.Add(ModelName);
-          end;
-        end;
-
-        if ComboBoxOllamaModel.Properties.Items.Count > 0 then
-        begin
-          // Try to restore previous selection
-          if (CurrentModel <> '') and (ComboBoxOllamaModel.Properties.Items.IndexOf(CurrentModel) >= 0) then
-            ComboBoxOllamaModel.Text := CurrentModel
-          else
-            ComboBoxOllamaModel.ItemIndex := 0;
-
-          MessageDlg(Format('Found %d model(s).', [ComboBoxOllamaModel.Properties.Items.Count]), mtInformation, [mbOK], 0);
-        end else
-          MessageDlg('No models found. Install models with: ollama pull <model-name>', mtWarning, [mbOK], 0);
-
-      finally
-        JSONResponse.Free;
-      end;
-
-    except
-      on E: Exception do
-        MessageDlg(Format('Failed to connect to Ollama server: %s', [E.Message]), mtError, [mbOK], 0);
-    end;
+    if (TranslationProvider.GetModels(ComboBoxOllamaModel.Properties.Items, ErrorMessage)) then
+    begin
+      // Try to restore previous selection
+      if (CurrentModel <> '') and (ComboBoxOllamaModel.Properties.Items.IndexOf(CurrentModel) >= 0) then
+        ComboBoxOllamaModel.Text := CurrentModel
+      else
+        ComboBoxOllamaModel.ItemIndex := 0;
+    end else
+      MessageDlg('Invalid JSON response from Ollama server.', mtError, [mbOK], 0);
 
   finally
-    HTTPClient.Free;
+    TranslationProvider := nil;
   end;
 end;
 
 procedure TFormSettings.ButtonOllamaTestClick(Sender: TObject);
-var
-  TranslationProvider: ITranslationProviderOllama;
-  ErrorMessage: string;
-  BaseURL: string;
-  ModelName: string;
-  AllTestsPassed: Boolean;
 begin
-  BaseURL := string(EditOllamaBaseURL.Text).Trim;
-  ModelName := string(ComboBoxOllamaModel.Text).Trim;
-
-  if BaseURL.IsEmpty then
+  if GetOllamaBaseURL.Trim.IsEmpty then
   begin
     MessageDlg('Please enter the Ollama Base URL first.', mtWarning, [mbOK], 0);
     Exit;
   end;
 
-  if ModelName.IsEmpty then
+  if GetOllamaModelName.Trim.IsEmpty then
   begin
     MessageDlg('Please select or enter a model name first.', mtWarning, [mbOK], 0);
     Exit;
@@ -1943,24 +1905,27 @@ begin
 
   SaveCursor(crHourGlass);
 
-  TranslationProvider := TTranslationProviderOllama.Create;
+  var TranslationProvider: ITranslationProviderOllama := TTranslationProviderOllama.Create(Self);
   try
-    AllTestsPassed := True;
+    var AllTestsPassed := True;
+    var ErrorMessage: string;
 
     // Test 1: Connection
-    if not TranslationProvider.ValidateConnection(BaseURL, ErrorMessage) then
+    if not TranslationProvider.ValidateConnection(ErrorMessage) then
     begin
       MessageDlg(Format('Connection test failed: %s', [ErrorMessage]), mtError, [mbOK], 0);
       AllTestsPassed := False;
-    end
+    end else
+
     // Test 2: Model validation
-    else if not TranslationProvider.ValidateModel(BaseURL, ModelName, ErrorMessage) then
+    if not TranslationProvider.ValidateModel(ErrorMessage) then
     begin
       MessageDlg(Format('Model validation failed: %s', [ErrorMessage]), mtError, [mbOK], 0);
       AllTestsPassed := False;
-    end
+    end else
+
     // Test 3: Translation test
-    else if not TranslationProvider.TestTranslation(BaseURL, ModelName, ErrorMessage) then
+    if not TranslationProvider.TestTranslation(ErrorMessage) then
     begin
       MessageDlg(Format('Translation test failed: %s', [ErrorMessage]), mtError, [mbOK], 0);
       AllTestsPassed := False;
