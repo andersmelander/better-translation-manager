@@ -56,12 +56,15 @@ type
     function GetISO639_1Name: string;
     function GetISO639_2Name: string;
     function GetDisplayName: string;
+    function GetEnglishDisplayName: string;
     function GetLanguageName: string;
+    function GetEnglishLanguageName: string;
     function GetLanguageShortName: string;
     function GetFallbackName: string;
     function GetFallback: TLanguageItem;
     function GetCountryCode: integer;
     function GetCountryName: string;
+    function GetEnglishCountryName: string;
     function GetAnsiCodePage: integer;
     function GetCharSet: integer;
     function GetReadingLayout: integer;
@@ -108,10 +111,16 @@ type
     /// <summary>DisplayName: Localized display name.
     /// E.g. Deutsch (Deutschland)</summary>
     property DisplayName: string read GetDisplayName;
+    /// <summary>EnglishDisplayName: Display name of the locale in English.
+    /// E.g. German (Germany)</summary>
+    property EnglishDisplayName: string read GetEnglishDisplayName;
 
     /// <summary>LanguageName: Localized primary language name.
     /// E.g. Deutsch</summary>
     property LanguageName: string read GetLanguageName;
+    /// <summary>EnglishLanguageName: English name of the language in English.
+    /// E.g. German</summary>
+    property EnglishLanguageName: string read GetEnglishLanguageName;
 
     /// <summary>LanguageShortName: Abbreviated, three letter language-region code.
     /// E.g. ENU, ENG, DAN, DEU etc.
@@ -132,6 +141,9 @@ type
     /// <summary>LanguageName: Localized country name.
     /// E.g. Deutschland</summary>
     property CountryName: string read GetCountryName;
+    /// <summary>EnglishLanguageName: English name of the country/region.
+    /// E.g. Germany</summary>
+    property EnglishCountryName: string read GetEnglishCountryName;
 
     /// <summary>AnsiCodePage: Default code page for non-unicode applications.</summary>
     property AnsiCodePage: integer read GetAnsiCodePage;
@@ -1226,6 +1238,20 @@ begin
   Result := FDisplayName;
 end;
 
+function TLanguageItem.GetEnglishDisplayName: string;
+begin
+  (*
+  LOCALE_SENGLISHDISPLAYNAME (Windows 7 and later)
+  Display name of the locale in English. Usually the display name consists of
+  the language and the country/region, for example, German (Germany) for
+  Deutsch (Deutschland).
+  *)
+  if (CheckWin32Version(7)) then
+    Result := GetLocaleData(LOCALE_SENGLISHDISPLAYNAME)
+  else
+    Result := GetDisplayName; // Fall back to localized
+end;
+
 //------------------------------------------------------------------------------
 
 function TLanguageItem.HasLanguageShortName: boolean;
@@ -1274,6 +1300,21 @@ begin
       FLanguageName := GetLocaleData(LOCALE_SLANGUAGE);
   end;
   Result := FLanguageName;
+end;
+
+function TLanguageItem.GetEnglishLanguageName: string;
+begin
+  (*
+  LOCALE_SENGLANGUAGE (pre Windows 7)
+  LOCALE_SENGLISHLANGUAGENAME (Windows 7 and later)
+  English name of the language in English, for example, German for Deutsch,
+  from International ISO Standard 639. This name is always restricted to
+  characters that can be mapped into the ASCII 127-character subset.
+  *)
+  if (CheckWin32Version(7)) then
+    Result := GetLocaleData(LOCALE_SENGLISHLANGUAGENAME)
+  else
+    Result := GetLocaleData(LOCALE_SENGLANGUAGE);
 end;
 
 //------------------------------------------------------------------------------
@@ -1325,6 +1366,21 @@ begin
     else
       FCountryName := GetLocaleData(LOCALE_SCOUNTRY);
   Result := FCountryName;
+end;
+
+function TLanguageItem.GetEnglishCountryName: string;
+begin
+  (*
+  LOCALE_SENGCOUNTRY (pre Windows 7)
+  LOCALE_SENGLISHCOUNTRYNAME (Windows 7 and later)
+  English name of the country/region, for example, Germany for Deutschland.
+  This name is always restricted to characters that can be mapped into the
+  ASCII 127-character subset.
+  *)
+  if (CheckWin32Version(7)) then
+    Result := GetLocaleData(LOCALE_SENGLISHCOUNTRYNAME)
+  else
+    Result := GetLocaleData(LOCALE_SENGCOUNTRY);
 end;
 
 //------------------------------------------------------------------------------

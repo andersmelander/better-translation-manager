@@ -62,6 +62,7 @@ type
     procedure Clear;
     procedure Remove(Section: TConfigurationSection);
     procedure Extract(Section: TConfigurationSection);
+    function GetEnumerator: TEnumerator<TConfigurationSection>;
     property Sections[Index: integer]: TConfigurationSection read GetSection;
     property Count: integer read GetCount;
   end;
@@ -72,7 +73,7 @@ type
     procedure ReadSection(Registry: TFixedRegIniFile; const Key: string);
   end;
 
-  TConfigurationSection = class(TPersistent)
+  TConfigurationSection = class(TInterfacedPersistent)
   private
     FOwner: TConfigurationSection;
     FPurgeOnWrite: boolean;
@@ -88,6 +89,7 @@ type
     function KeyRoot: string; virtual;
     procedure Initialize; virtual;
     procedure ApplyDefault; virtual;
+    procedure Reset; virtual; // Calls ApplyDefault and recurses to call Reset on child sections
     procedure WriteStream(const AKey, AName: string; Stream: TMemoryStream); overload; virtual;
     procedure ReadStream(const AKey, AName: string; Stream: TMemoryStream); overload; virtual;
     function GetRegistry: TFixedRegIniFile; virtual;
@@ -1457,6 +1459,16 @@ begin
   Owner.ReadStream(Key, AName, Stream);
 end;
 
+procedure TConfigurationSection.Reset;
+var
+  ChildSection: TConfigurationSection;
+begin
+  ApplyDefault;
+
+  for ChildSection in Sections do
+    ChildSection.Reset;
+end;
+
 procedure TConfigurationSection.WriteStream(const AName: string;
   Stream: TMemoryStream);
 begin
@@ -1516,6 +1528,11 @@ end;
 function TConfigurationSectionList.GetCount: integer;
 begin
   Result := FSections.Count;
+end;
+
+function TConfigurationSectionList.GetEnumerator: TEnumerator<TConfigurationSection>;
+begin
+  Result := FSections.GetEnumerator;
 end;
 
 function TConfigurationSectionList.GetSection(Index: integer): TConfigurationSection;

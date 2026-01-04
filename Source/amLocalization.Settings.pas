@@ -30,7 +30,8 @@ uses
   amLocalization.Utils,
   amLocalization.Model,
   amLocalization.StopList,
-  amLocalization.Normalization;
+  amLocalization.Normalization,
+  amLocalization.Provider.Ollama.Settings;
 
 
 //------------------------------------------------------------------------------
@@ -72,6 +73,7 @@ type
   protected
     procedure ReadSection(const Key: string); override;
     procedure WriteSection(const Key: string); override;
+    procedure ApplyDefault; override;
   public
     function ApplySettings(Form: TCustomForm): boolean;
     function PrepareSettings(Form: TCustomForm): boolean;
@@ -214,6 +216,7 @@ type
     FMicrosoftV3: TTranslationManagerProviderMicrosoftTranslatorV3Settings;
     FTranslationMemory: TTranslationManagerProviderTM;
     FDeepL: TTranslationManagerProviderDeepLSettings;
+    FOllama: TTranslationManagerProviderOllamaSettings;
   public
     constructor Create(AOwner: TConfigurationSection); override;
     destructor Destroy; override;
@@ -222,6 +225,7 @@ type
     property MicrosoftTranslatorV3: TTranslationManagerProviderMicrosoftTranslatorV3Settings read FMicrosoftV3;
     property TranslationMemory: TTranslationManagerProviderTM read FTranslationMemory;
     property DeepL: TTranslationManagerProviderDeepLSettings read FDeepL;
+    property Ollama: TTranslationManagerProviderOllamaSettings read FOllama;
   end;
 
   TTranslationManagerProofingSettings = class(TConfigurationSection)
@@ -612,6 +616,18 @@ uses
 type
   TFormCracker = class(TCustomForm);
 
+procedure TCustomFormSettings.ApplyDefault;
+begin
+  inherited;
+
+  FValid := False;
+//  FLeft := FForm.ExplicitLeft;
+//  FTop := FForm.ExplicitTop;
+  FWidth := -1;
+  FHeight := -1;
+  FMaximized := False;
+end;
+
 function TCustomFormSettings.ApplySettings(Form: TCustomForm): boolean;
 var
   Monitor: TMonitor;
@@ -702,14 +718,7 @@ end;
 
 procedure TCustomFormSettings.ResetSettings;
 begin
-  ApplyDefault;
-
-  Valid := False;
-//  FLeft := FForm.ExplicitLeft;
-//  FTop := FForm.ExplicitTop;
-  FWidth := -1;
-  FHeight := -1;
-  FMaximized := False;
+  Reset;
 end;
 
 //------------------------------------------------------------------------------
@@ -745,10 +754,7 @@ end;
 
 procedure TTranslationManagerFolderSettings.ResetSettings;
 begin
-  ApplyDefault;
-
-  FRecentFiles.Clear;
-  FRecentApplications.Clear;
+  Reset;
 end;
 
 procedure TTranslationManagerFolderSettings.ReadSection(const Key: string);
@@ -963,10 +969,12 @@ begin
   FMicrosoftV3 := TTranslationManagerProviderMicrosoftTranslatorV3Settings.Create(Self);
   FTranslationMemory := TTranslationManagerProviderTM.Create(Self);
   FDeepL := TTranslationManagerProviderDeepLSettings.Create(Self);
+  FOllama := TTranslationManagerProviderOllamaSettings.Create(Self);
 end;
 
 destructor TTranslationManagerProviderSettings.Destroy;
 begin
+  FOllama.Free;
   FDeepL.Free;
   FMicrosoftV3.Free;
   FTranslationMemory.Free;
@@ -975,10 +983,7 @@ end;
 
 procedure TTranslationManagerProviderSettings.ResetSettings;
 begin
-  ApplyDefault;
-
-  FMicrosoftV3.ApplyDefault;
-  FTranslationMemory.ApplyDefault;
+  Reset; // This recurses to call ApplyDefault on child sections
 end;
 
 { TTranslationManagerProviderTM }
@@ -1198,7 +1203,7 @@ end;
 
 procedure TTranslationManagerStyleSettings.ResetSettings;
 begin
-  ApplyDefault;
+  Reset;
 end;
 
 { TTranslationManagerEditorSettings }

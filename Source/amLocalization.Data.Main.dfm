@@ -2,7 +2,6 @@ object DataModuleMain: TDataModuleMain
   OnCreate = DataModuleCreate
   Height = 408
   Width = 441
-  PixelsPerInch = 96
   object DataSetLanguages: TFDMemTable
     FetchOptions.AssignedValues = [evMode]
     FetchOptions.Mode = fmAll
@@ -39,14 +38,9 @@ object DataModuleMain: TDataModuleMain
     Left = 60
     Top = 125
     object GridTableViewLanguages: TcxGridDBTableView
-      Navigator.Buttons.CustomButtons = <>
-      ScrollbarAnnotations.CustomAnnotations = <>
       DataController.DataSource = DataSourceLanguages
       DataController.KeyFieldNames = 'LocaleName'
       DataController.Options = [dcoAnsiSort, dcoCaseInsensitive, dcoAssignGroupingValues, dcoAssignMasterDetailKeys, dcoSaveExpanding]
-      DataController.Summary.DefaultGroupSummaryItems = <>
-      DataController.Summary.FooterSummaryItems = <>
-      DataController.Summary.SummaryGroups = <>
       OptionsBehavior.IncSearchItem = GridTableViewLanguagesColumnLocaleName
       OptionsBehavior.ShowHourglassCursor = False
       OptionsData.Deleting = False
@@ -76,14 +70,9 @@ object DataModuleMain: TDataModuleMain
       end
     end
     object GridTableViewFilteredTargetLanguages: TcxGridDBTableView
-      Navigator.Buttons.CustomButtons = <>
-      ScrollbarAnnotations.CustomAnnotations = <>
       DataController.DataSource = DataSourceLanguages
       DataController.Filter.Active = True
       DataController.KeyFieldNames = 'LocaleName'
-      DataController.Summary.DefaultGroupSummaryItems = <>
-      DataController.Summary.FooterSummaryItems = <>
-      DataController.Summary.SummaryGroups = <>
       DataController.OnFilterRecord = GridTableViewTargetLanguagesDataControllerFilterRecord
       OptionsBehavior.ShowHourglassCursor = False
       OptionsData.Deleting = False
@@ -113,14 +102,9 @@ object DataModuleMain: TDataModuleMain
       end
     end
     object GridTableViewFilteredApplicationLanguages: TcxGridDBTableView
-      Navigator.Buttons.CustomButtons = <>
-      ScrollbarAnnotations.CustomAnnotations = <>
       DataController.DataSource = DataSourceLanguages
       DataController.Filter.Active = True
       DataController.KeyFieldNames = 'LocaleID'
-      DataController.Summary.DefaultGroupSummaryItems = <>
-      DataController.Summary.FooterSummaryItems = <>
-      DataController.Summary.SummaryGroups = <>
       DataController.OnFilterRecord = GridTableViewFilteredApplicationLanguagesDataControllerFilterRecord
       OptionsBehavior.ShowHourglassCursor = False
       OptionsData.Deleting = False
@@ -4980,7 +4964,7 @@ object DataModuleMain: TDataModuleMain
     end
     object StyleComplete: TcxStyle
       AssignedValues = [svColor, svTextColor]
-      Color = 16775408
+      Color = clAliceblue
       TextColor = 16742656
     end
     object StyleNeedTranslation: TcxStyle

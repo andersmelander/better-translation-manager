@@ -32,6 +32,7 @@ uses
   dxSpellChecker,
 
   amLocalization.Settings,
+  amLocalization.Provider.Ollama.API,
   amLocalization.Dialog,
   amLocalization.Dialog.Settings.API;
 
@@ -46,7 +47,7 @@ type
   end;
 
 type
-  TFormSettings = class(TFormDialog, IDialogSettings)
+  TFormSettings = class(TFormDialog, IDialogSettings, ITranslationProviderSettingsOllama)
     ActionFoldersModify: TAction;
     ActionFolderReset: TAction;
     ActionFoldersExplorer: TAction;
@@ -325,6 +326,21 @@ type
     dxLayoutGroup2: TdxLayoutGroup;
     dxLayoutItem26: TdxLayoutItem;
     CheckBoxFileProjectSaveTransient: TcxCheckBox;
+    EditOllamaBaseURL: TcxButtonEdit;
+    ComboBoxOllamaModel: TcxComboBox;
+    EditOllamaTimeout: TcxSpinEdit;
+    ButtonOllamaDetectModels: TcxButton;
+    ButtonOllamaTest: TcxButton;
+    LayoutGroupTranslatorOllama: TdxLayoutGroup;
+    LayoutItemOllamaBaseURL: TdxLayoutItem;
+    LayoutItemOllamaModel: TdxLayoutItem;
+    LayoutItemOllamaTimeout: TdxLayoutItem;
+    LayoutItemOllamaDetectModels: TdxLayoutItem;
+    LayoutItemOllamaTest: TdxLayoutItem;
+    ActionOllamaDetectModels: TAction;
+    ActionOllamaTest: TAction;
+    dxLayoutSeparatorItem3: TdxLayoutSeparatorItem;
+    LayoutGroupOllamaButtons: TdxLayoutGroup;
     procedure TextEditTranslatorMSAPIKeyPropertiesButtonClick(Sender: TObject; AButtonIndex: Integer);
     procedure TextEditTranslatorMSAPIKeyPropertiesChange(Sender: TObject);
     procedure ActionCategoryExecute(Sender: TObject);
@@ -398,6 +414,10 @@ type
     procedure PaintBoxColorSamplePaint(Sender: TObject);
     procedure EditTranslatorDeepLAPIKeyPropertiesButtonClick(Sender: TObject; AButtonIndex: Integer);
     procedure EditTranslatorDeepLAPIKeyPropertiesChange(Sender: TObject);
+    procedure EditOllamaBaseURLPropertiesButtonClick(Sender: TObject; AButtonIndex: Integer);
+    procedure EditOllamaBaseURLPropertiesChange(Sender: TObject);
+    procedure ButtonOllamaDetectModelsClick(Sender: TObject);
+    procedure ButtonOllamaTestClick(Sender: TObject);
   private
     FSpellCheckerAutoCorrectOptions: TdxSpellCheckerAutoCorrectOptions;
     FRestartRequired: boolean;
@@ -463,6 +483,16 @@ type
     // IDialogSettings
     function Execute(ASpellChecker: TdxSpellChecker; ARibbonStyle: TdxRibbonStyle): boolean;
     function GetRestartRequired: boolean;
+
+  private
+    // ITranslationProviderSettingsOllama
+    function GetOllamaBaseURL: string;
+    function GetOllamaModelName: string;
+    function GetOllamaTimeout: integer;
+    function ITranslationProviderSettingsOllama.GetBaseURL = GetOllamaBaseURL;
+    function ITranslationProviderSettingsOllama.GetModelName = GetOllamaModelName;
+    function ITranslationProviderSettingsOllama.GetTimeout = GetOllamaTimeout;
+
   public
     constructor Create(Awner: TComponent); override;
     destructor Destroy; override;
@@ -481,6 +511,9 @@ uses
   Types, UITypes,
   IOUtils,
   Math,
+  System.NetEncoding,
+  System.Net.HttpClient,
+  System.JSON,
 
   dxSkinsdxRibbonPainter,
 
@@ -508,7 +541,8 @@ uses
   amLocalization.Data.Main,
   amLocalization.Environment,
   amLocalization.Provider.Microsoft.Version3,
-  amLocalization.Provider.DeepL;
+  amLocalization.Provider.DeepL,
+  amLocalization.Provider.Ollama;
 
 resourcestring
   sValueRequired = 'Value required';
@@ -541,6 +575,12 @@ begin
   GridColorsTableView.DataController.RecordCount := Ord(High(TListStyle))+1;
   for Style := Low(TListStyle) to High(TListStyle) do
     GridColorsTableView.DataController.Values[Ord(Style), 0] := TranslationManagerSettings.Editor.Style[Style].Name;
+
+  // Ensure that all provider groups are collapsed in case we forgot to do it
+  // at design-time.
+  for var i := 0 to LayoutGroupCategoryProviders.Count-1 do
+    if (LayoutGroupCategoryProviders[i] is TdxLayoutGroup) then
+      TdxLayoutGroup(LayoutGroupCategoryProviders[i]).Expanded := False;
 end;
 
 destructor TFormSettings.Destroy;
@@ -672,6 +712,10 @@ begin
   ActionProviderDeepLLicenseFree.Checked := not TranslationManagerSettings.Providers.Deepl.ProVersion;
   ActionProviderDeepLLicensePro.Checked := TranslationManagerSettings.Providers.Deepl.ProVersion;
 
+  EditOllamaBaseURL.Text := TranslationManagerSettings.Providers.Ollama.BaseURL;
+  ComboBoxOllamaModel.Text := TranslationManagerSettings.Providers.Ollama.ModelName;
+  EditOllamaTimeout.Value := TranslationManagerSettings.Providers.Ollama.Timeout;
+
   (*
   ** Files section
   *)
@@ -766,6 +810,10 @@ begin
 
   TranslationManagerSettings.Providers.Deepl.APIKey := EditTranslatorDeepLAPIKey.Text;
   TranslationManagerSettings.Providers.Deepl.ProVersion := ActionProviderDeepLLicensePro.Checked;
+
+  TranslationManagerSettings.Providers.Ollama.BaseURL := EditOllamaBaseURL.Text;
+  TranslationManagerSettings.Providers.Ollama.ModelName := ComboBoxOllamaModel.Text;
+  TranslationManagerSettings.Providers.Ollama.Timeout := EditOllamaTimeout.Value;
 
   (*
   ** Files section
@@ -959,6 +1007,23 @@ begin
     GridSynthesizeTableView.DataController.Values[i, GridSynthesizeTableViewColumnValue.Index] :=
       TranslationManagerSettings.Parser.Synthesize.Rules[i].PropertyValue;
   end;
+end;
+
+// -----------------------------------------------------------------------------
+
+function TFormSettings.GetOllamaBaseURL: string;
+begin
+  Result := EditOllamaBaseURL.Text;
+end;
+
+function TFormSettings.GetOllamaModelName: string;
+begin
+  Result := ComboBoxOllamaModel.Text;
+end;
+
+function TFormSettings.GetOllamaTimeout: integer;
+begin
+  Result := EditOllamaTimeout.Value;
 end;
 
 // -----------------------------------------------------------------------------
@@ -1758,6 +1823,123 @@ procedure TFormSettings.EditTranslatorDeepLAPIKeyPropertiesChange(Sender: TObjec
 begin
   // API key no longer validated
   EditTranslatorDeepLAPIKey.Properties.Buttons[0].ImageIndex := 0;
+end;
+
+// -----------------------------------------------------------------------------
+//
+// Ollama provider handlers
+//
+// -----------------------------------------------------------------------------
+
+procedure TFormSettings.EditOllamaBaseURLPropertiesButtonClick(Sender: TObject; AButtonIndex: Integer);
+var
+  TranslationProvider: ITranslationProviderOllama;
+  ErrorMessage: string;
+begin
+  EditOllamaBaseURL.Properties.Buttons[AButtonIndex].ImageIndex := 0;
+
+  SaveCursor(crAppStart);
+
+  TranslationProvider := TTranslationProviderOllama.Create(Self);
+  try
+    if TranslationProvider.ValidateConnection(ErrorMessage) then
+    begin
+      EditOllamaBaseURL.Properties.Buttons[AButtonIndex].ImageIndex := 1;
+      MessageDlg('Successfully connected to Ollama server.', mtInformation, [mbOK], 0);
+    end else
+      MessageDlg(Format('Connection failed: %s', [ErrorMessage]), mtWarning, [mbOK], 0);
+  finally
+    TranslationProvider := nil;
+  end;
+end;
+
+procedure TFormSettings.EditOllamaBaseURLPropertiesChange(Sender: TObject);
+begin
+  // URL no longer validated
+  EditOllamaBaseURL.Properties.Buttons[0].ImageIndex := 0;
+end;
+
+procedure TFormSettings.ButtonOllamaDetectModelsClick(Sender: TObject);
+begin
+  if GetOllamaBaseURL.Trim.IsEmpty then
+  begin
+    MessageDlg('Please enter the Ollama Base URL first.', mtWarning, [mbOK], 0);
+    Exit;
+  end;
+
+  var TranslationProvider: ITranslationProviderOllama := TTranslationProviderOllama.Create(Self);
+  try
+    SaveCursor(crHourGlass);
+
+    var CurrentModel := ComboBoxOllamaModel.Text;
+    var ErrorMessage: string;
+
+    if (TranslationProvider.GetModels(ComboBoxOllamaModel.Properties.Items, ErrorMessage)) then
+    begin
+      // Try to restore previous selection
+      if (CurrentModel <> '') and (ComboBoxOllamaModel.Properties.Items.IndexOf(CurrentModel) >= 0) then
+        ComboBoxOllamaModel.Text := CurrentModel
+      else
+        ComboBoxOllamaModel.ItemIndex := 0;
+    end else
+      MessageDlg('Invalid JSON response from Ollama server.', mtError, [mbOK], 0);
+
+  finally
+    TranslationProvider := nil;
+  end;
+end;
+
+procedure TFormSettings.ButtonOllamaTestClick(Sender: TObject);
+begin
+  if GetOllamaBaseURL.Trim.IsEmpty then
+  begin
+    MessageDlg('Please enter the Ollama Base URL first.', mtWarning, [mbOK], 0);
+    Exit;
+  end;
+
+  if GetOllamaModelName.Trim.IsEmpty then
+  begin
+    MessageDlg('Please select or enter a model name first.', mtWarning, [mbOK], 0);
+    Exit;
+  end;
+
+  SaveCursor(crHourGlass);
+
+  var TranslationProvider: ITranslationProviderOllama := TTranslationProviderOllama.Create(Self);
+  try
+    var AllTestsPassed := True;
+    var ErrorMessage: string;
+
+    // Test 1: Connection
+    if not TranslationProvider.ValidateConnection(ErrorMessage) then
+    begin
+      MessageDlg(Format('Connection test failed: %s', [ErrorMessage]), mtError, [mbOK], 0);
+      AllTestsPassed := False;
+    end else
+
+    // Test 2: Model validation
+    if not TranslationProvider.ValidateModel(ErrorMessage) then
+    begin
+      MessageDlg(Format('Model validation failed: %s', [ErrorMessage]), mtError, [mbOK], 0);
+      AllTestsPassed := False;
+    end else
+
+    // Test 3: Translation test
+    if not TranslationProvider.TestTranslation(ErrorMessage) then
+    begin
+      MessageDlg(Format('Translation test failed: %s', [ErrorMessage]), mtError, [mbOK], 0);
+      AllTestsPassed := False;
+    end;
+
+    if AllTestsPassed then
+      MessageDlg('All tests passed successfully!' + #13#10 +
+                 '- Connection: OK' + #13#10 +
+                 '- Model available: OK' + #13#10 +
+                 '- Translation: OK', mtInformation, [mbOK], 0);
+
+  finally
+    TranslationProvider := nil;
+  end;
 end;
 
 // -----------------------------------------------------------------------------
