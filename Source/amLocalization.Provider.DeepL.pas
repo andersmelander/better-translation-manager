@@ -56,6 +56,7 @@ type
     function Lookup(Prop: TLocalizerProperty; SourceLanguage, TargetLanguage: TLanguageItem; Translations: TStrings): boolean;
     procedure EndLookup;
     function GetProviderName: string;
+    function GetEnabled: boolean;
   protected
     // ITranslationProviderDeepL
     function ValidateAPIKey(const APIKey: string; Pro: boolean; var ErrorMessage: string): boolean;
@@ -273,6 +274,11 @@ begin
   Result := TranslationManagerSettings.Providers.DeepL.APIKey;
 end;
 
+function TTranslationProviderDeepL.GetEnabled: boolean;
+begin
+  Result := TranslationManagerSettings.Providers.DeepL.Enabled;
+end;
+
 function TTranslationProviderDeepL.GetProviderName: string;
 begin
   Result := sProviderNameDeepL;
@@ -303,6 +309,10 @@ initialization
     function(): ITranslationProvider
     begin
       Result := TTranslationProviderDeepL.Create;
+    end,
+    function(): boolean
+    begin
+      Result := TranslationManagerSettings.Providers.DeepL.Enabled;
     end);
 
 finalization

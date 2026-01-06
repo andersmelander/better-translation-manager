@@ -103,8 +103,6 @@ type
     function FindTranslations(Prop: TLocalizerProperty; SourceLanguage, TargetLanguage: TLanguageItem; Translations: TStrings): boolean; overload;
     function FindTranslations(Prop: TLocalizerProperty; SourceLanguage, TargetLanguage: TLanguageItem; LookupResult: TTranslationLookupResult): boolean; overload;
 
-    function GetEnabled: boolean;
-    procedure SetEnabled(const Value: boolean);
     function GetIsLoaded: boolean;
     function GetModified: boolean;
     function GetIsAvailable: boolean;
@@ -114,13 +112,13 @@ type
     property IsAvailable: boolean read GetIsAvailable;
     property HasData: boolean read GetHasData;
     property Modified: boolean read GetModified;
-    property Enabled: boolean read GetEnabled write SetEnabled;
   protected
     // ITranslationProvider
     function BeginLookup(SourceLanguage, TargetLanguage: TLanguageItem): boolean; override;
     function Lookup(Prop: TLocalizerProperty; SourceLanguage, TargetLanguage: TLanguageItem; Translations: TStrings): boolean; override;
     procedure EndLookup; override;
     function GetProviderName: string; override;
+    function GetEnabled: boolean; override;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -828,17 +826,12 @@ end;
 
 function TDataModuleTranslationMemory.GetIsAvailable: boolean;
 begin
-  Result := (FLoaded) or ((FEnabled) and (TranslationManagerSettings.Providers.TranslationMemory.LoadOnDemand));
-end;
-
-procedure TDataModuleTranslationMemory.SetEnabled(const Value: boolean);
-begin
-  FEnabled := Value;
+  Result := (TranslationManagerSettings.Providers.TranslationMemory.Enabled) and ((FLoaded) or ((FEnabled) and (TranslationManagerSettings.Providers.TranslationMemory.LoadOnDemand)));
 end;
 
 function TDataModuleTranslationMemory.GetEnabled: boolean;
 begin
-  Result := FEnabled;
+  Result := TranslationManagerSettings.Providers.TranslationMemory.Enabled;
 end;
 
 function TDataModuleTranslationMemory.GetHasData: boolean;

@@ -44,6 +44,7 @@ type
     function Lookup(AProp: TLocalizerProperty; ASourceLanguage, ATargetLanguage: TLanguageItem; ATranslations: TStrings): boolean;
     procedure EndLookup;
     function GetProviderName: string;
+    function GetEnabled: boolean;
 
   private
     // ITranslationProviderOllama
@@ -98,6 +99,11 @@ type
 function TTranslationProviderOllama.GetBaseURL: string;
 begin
   Result := FSettings.BaseURL;
+end;
+
+function TTranslationProviderOllama.GetEnabled: boolean;
+begin
+  Result := TranslationManagerSettings.Providers.Ollama.Enabled;
 end;
 
 function TTranslationProviderOllama.GetModelName: string;
@@ -464,6 +470,10 @@ initialization
     function(): ITranslationProvider
     begin
       Result := TTranslationProviderOllama.Create;
+    end,
+    function(): boolean
+    begin
+      Result := TranslationManagerSettings.Providers.Ollama.Enabled;
     end);
 
 finalization

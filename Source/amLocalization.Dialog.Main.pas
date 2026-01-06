@@ -553,6 +553,7 @@ type
     procedure TreeListModulesCompare(Sender: TcxCustomTreeList; ANode1, ANode2: TcxTreeListNode; var ACompare: Integer);
     procedure GridItemsTableViewDataControllerCompare(ADataController: TcxCustomDataController; ARecordIndex1, ARecordIndex2,
       AItemIndex: Integer; const V1, V2: Variant; var Compare: Integer);
+    procedure ActionTranslationMemoryIsEnabled(Sender: TObject);
   private
     FProject: TLocalizerProject;
     FProjectFilename: string;
@@ -1350,6 +1351,12 @@ begin
 
         // Repaint in case colors changed
         GridItems.Invalidate;
+
+        ActionTranslationMemory.Visible := TranslationManagerSettings.Providers.TranslationMemory.Enabled;
+        ActionTranslationMemoryAdd.Visible := TranslationManagerSettings.Providers.TranslationMemory.Enabled;
+        ActionTranslationMemoryTranslate.Visible := TranslationManagerSettings.Providers.TranslationMemory.Enabled;
+        ActionTranslationMemoryLocate.Visible := TranslationManagerSettings.Providers.TranslationMemory.Enabled;
+        ActionTranslationMemoryUpdate.Visible := TranslationManagerSettings.Providers.TranslationMemory.Enabled;
       end;
 
     tmaShutdown:
@@ -1916,6 +1923,11 @@ begin
   CreateTranslationMemoryPeeker(True);
 end;
 
+procedure TFormMain.ActionTranslationMemoryIsEnabled(Sender: TObject);
+begin
+  TAction(Sender).Enabled := TranslationManagerSettings.Providers.TranslationMemory.Enabled;
+end;
+
 procedure TFormMain.ActionTranslationMemoryLocateExecute(Sender: TObject);
 var
   FormTranslationMemory: TFormTranslationMemory;
@@ -2430,7 +2442,7 @@ end;
 
 procedure TFormMain.CreateTranslationMemoryPeeker(Force: boolean);
 begin
-  if (not TranslationManagerSettings.Providers.TranslationMemory.BackgroundQuery) or (TranslationManagerSettings.System.SafeMode) then
+  if (not TranslationManagerSettings.Providers.TranslationMemory.Enabled) or (not TranslationManagerSettings.Providers.TranslationMemory.BackgroundQuery) or (TranslationManagerSettings.System.SafeMode) then
   begin
     FTranslationMemoryPeek := nil;
     Exit;
@@ -2637,6 +2649,7 @@ begin
     TdxBarButton(ItemLink.Item).Caption := Provider.ProviderName;
     TdxBarButton(ItemLink.Item).Tag := Provider.Handle;
     TdxBarButton(ItemLink.Item).OnClick := OnTranslationProviderHandler;
+    ItemLink.Item.Enabled := Provider.Enabled;
   end;
 end;
 
@@ -6924,7 +6937,7 @@ begin
     end;
 
     // Add translations from TM
-    if (FModuleItemsDataSource.PeekResult[GridItemsTableView.Controller.FocusedRecord.RecordIndex] = TTranslationMemoryPeekResult.prFound) then
+    if (TranslationManagerSettings.Providers.TranslationMemory.Enabled) and (FModuleItemsDataSource.PeekResult[GridItemsTableView.Controller.FocusedRecord.RecordIndex] = TTranslationMemoryPeekResult.prFound) then
       FTranslationMemory.FindTranslations(FocusedProperty, SourceLanguage, TargetLanguage, LookupResult);
 
     // Rank by source value similarity - this also eliminates duplicates

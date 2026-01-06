@@ -11,11 +11,11 @@ unit amLocalization.Provider.Ollama.Settings;
 interface
 
 uses
-  amRegConfig,
+  amLocalization.Provider.Settings,
   amLocalization.Provider.Ollama.API;
 
 type
-  TTranslationManagerProviderOllamaSettings = class(TConfigurationSection, ITranslationProviderSettingsOllama)
+  TTranslationManagerProviderOllamaSettings = class(TCustomTranslationManagerProviderSettings, ITranslationProviderSettingsOllama)
   private
     FBaseURL: string;
     FModelName: string;

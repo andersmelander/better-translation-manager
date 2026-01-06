@@ -31,6 +31,9 @@ type
 
     function GetProviderName: string;
     property ProviderName: string read GetProviderName;
+
+    function GetEnabled: boolean;
+    property Enabled: boolean read GetEnabled;
   end;
 
 
@@ -55,12 +58,14 @@ type
 // -----------------------------------------------------------------------------
 type
   TTranslationProviderFactory = reference to function(): ITranslationProvider;
+  TTranslationProviderEnabled = reference to function(): boolean;
 
   TranslationProviderRegistry = class abstract
   private type
     TProviderRecord = record
       ProviderName: string;
       ProviderFactory: TTranslationProviderFactory;
+      EnabledDelegate: TTranslationProviderEnabled;
       NextFreeHandle: integer;
     end;
   private
@@ -71,6 +76,7 @@ type
     TProvider = record
       Handle: integer;
       ProviderName: string;
+      Enabled: boolean;
     end;
 
     TProviderEnumerator = record
@@ -89,7 +95,7 @@ type
     class constructor Create;
     class destructor Destroy;
 
-    class function RegisterProvider(const ProviderName: string; ProviderFactory: TTranslationProviderFactory): integer;
+    class function RegisterProvider(const ProviderName: string; ProviderFactory: TTranslationProviderFactory; EnabledDelegate: TTranslationProviderEnabled = nil): integer;
     class procedure UnregisterProvider(ProviderHandle: integer);
 
     function GetEnumerator: TProviderEnumerator;
@@ -120,6 +126,7 @@ type
     function Lookup(Prop: TLocalizerProperty; SourceLanguage, TargetLanguage: TLanguageItem; Translations: TStrings): boolean; virtual; abstract;
     procedure EndLookup; virtual;
     function GetProviderName: string; virtual; abstract;
+    function GetEnabled: boolean; virtual; abstract;
   end;
 
 
@@ -354,6 +361,11 @@ function TranslationProviderRegistry.TProviderEnumerator.GetCurrent: TProvider;
 begin
   Result.Handle := FIndex;
   Result.ProviderName := FList[FIndex].ProviderName;
+
+  if (Assigned(FList[FIndex].EnabledDelegate)) then
+    Result.Enabled := FList[FIndex].EnabledDelegate()
+  else
+    Result.Enabled := True;
 end;
 
 function TranslationProviderRegistry.GetEnumerator: TProviderEnumerator;
@@ -369,12 +381,13 @@ begin
   Result := FRegistry[ProviderHandle].ProviderFactory();
 end;
 
-class function TranslationProviderRegistry.RegisterProvider(const ProviderName: string; ProviderFactory: TTranslationProviderFactory): integer;
+class function TranslationProviderRegistry.RegisterProvider(const ProviderName: string; ProviderFactory: TTranslationProviderFactory; EnabledDelegate: TTranslationProviderEnabled): integer;
 var
   ProviderRecord: TProviderRecord;
 begin
   ProviderRecord.ProviderName := ProviderName;
   ProviderRecord.ProviderFactory := ProviderFactory;
+  ProviderRecord.EnabledDelegate := EnabledDelegate;
   ProviderRecord.NextFreeHandle := -1;
 
   if (FFirstFreeHandle <> -1) then

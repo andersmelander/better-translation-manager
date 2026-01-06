@@ -102,8 +102,6 @@ type
     function FindTranslations(Prop: TLocalizerProperty; SourceLanguage, TargetLanguage: TLanguageItem; Translations: TStrings): boolean; overload;
     function FindTranslations(Prop: TLocalizerProperty; SourceLanguage, TargetLanguage: TLanguageItem; LookupResult: TTranslationLookupResult): boolean; overload;
 
-    function GetEnabled: boolean;
-    procedure SetEnabled(const Value: boolean);
     function GetIsLoaded: boolean;
     function GetModified: boolean;
     function GetIsAvailable: boolean;
@@ -113,7 +111,6 @@ type
     property IsAvailable: boolean read GetIsAvailable;
     property HasData: boolean read GetHasData;
     property Modified: boolean read GetModified;
-    property Enabled: boolean read GetEnabled write SetEnabled;
   end;
 
 type

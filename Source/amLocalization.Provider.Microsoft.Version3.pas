@@ -45,6 +45,7 @@ type
     function BeginLookup(SourceLanguage, TargetLanguage: TLanguageItem): boolean; override;
     function Lookup(Prop: TLocalizerProperty; SourceLanguage, TargetLanguage: TLanguageItem; Translations: TStrings): boolean; override;
     function GetProviderName: string; override;
+    function GetEnabled: boolean; override;
 
     // ITranslationProviderMicrosoftV3
     function ValidateAPIKey(const APIKey, Region: string; var ErrorMessage: string): boolean;
@@ -94,6 +95,11 @@ begin
   RESTClient.Params[1].Value := TranslationManagerSettings.Providers.MicrosoftTranslatorV3.Region;
 
   Result := True;
+end;
+
+function TTranslationProviderMicrosoftV3.GetEnabled: boolean;
+begin
+  Result := TranslationManagerSettings.Providers.MicrosoftTranslatorV3.Enabled;
 end;
 
 function TTranslationProviderMicrosoftV3.GetProviderName: string;
@@ -203,6 +209,10 @@ initialization
     function(): ITranslationProvider
     begin
       Result := TTranslationProviderMicrosoftV3.Create(nil);
+    end,
+    function(): boolean
+    begin
+      Result := TranslationManagerSettings.Providers.MicrosoftTranslatorV3.Enabled;
     end);
 
 finalization

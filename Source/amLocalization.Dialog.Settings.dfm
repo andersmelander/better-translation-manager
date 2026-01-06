@@ -1852,9 +1852,11 @@ inherited FormSettings: TFormSettings
     object LayoutGroupTranslatorTM: TdxLayoutGroup
       Parent = LayoutGroupCategoryProviders
       CaptionOptions.Text = 'Translation Memory'
+      ButtonOptions.CheckBox.Visible = True
       ButtonOptions.ShowExpandButton = True
       Expanded = False
       ItemIndex = 2
+      OnCheckBoxStateChanged = LayoutGroupTranslatorTMCheckBoxStateChanged
       Index = 0
     end
     object dxLayoutItem64: TdxLayoutItem
@@ -1963,6 +1965,7 @@ inherited FormSettings: TFormSettings
     object LayoutGroupTranslatorMS: TdxLayoutGroup
       Parent = LayoutGroupCategoryProviders
       CaptionOptions.Text = 'Microsoft Translation Service'
+      ButtonOptions.CheckBox.Visible = True
       ButtonOptions.ShowExpandButton = True
       Expanded = False
       ItemIndex = 1
@@ -2731,6 +2734,7 @@ inherited FormSettings: TFormSettings
     object LayoutGroupTranslatorDeepL: TdxLayoutGroup
       Parent = LayoutGroupCategoryProviders
       CaptionOptions.Text = 'DeepL'
+      ButtonOptions.CheckBox.Visible = True
       ButtonOptions.ShowExpandButton = True
       Expanded = False
       Index = 2
@@ -2780,6 +2784,7 @@ inherited FormSettings: TFormSettings
     object LayoutGroupTranslatorOllama: TdxLayoutGroup
       Parent = LayoutGroupCategoryProviders
       CaptionOptions.Text = 'Ollama (Local LLM)'
+      ButtonOptions.CheckBox.Visible = True
       ButtonOptions.ShowExpandButton = True
       ItemIndex = 4
       Index = 3

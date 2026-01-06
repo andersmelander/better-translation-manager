@@ -34,6 +34,7 @@ type
     function Lookup(Prop: TLocalizerProperty; SourceLanguage, TargetLanguage: TLanguageItem; Translations: TStrings): boolean;
     procedure EndLookup;
     function GetProviderName: string;
+    function GetEnabled: boolean;
   public
     constructor Create;
     destructor Destroy; override;
@@ -48,6 +49,9 @@ resourcestring
 
 
 implementation
+
+uses
+  amLocalization.Settings;
 
 // -----------------------------------------------------------------------------
 //
@@ -104,6 +108,11 @@ begin
     TranslationProvider.EndLookup;
 end;
 
+function TTranslationProviderTranslationMemory.GetEnabled: boolean;
+begin
+  Result := TranslationManagerSettings.Providers.TranslationMemory.Enabled;
+end;
+
 function TTranslationProviderTranslationMemory.GetProviderName: string;
 begin
   Result := sProviderNameTM;
@@ -128,6 +137,10 @@ initialization
     function(): ITranslationProvider
     begin
       Result := TTranslationProviderTranslationMemory.Create;
+    end,
+    function(): boolean
+    begin
+      Result := TranslationManagerSettings.Providers.TranslationMemory.Enabled;
     end);
 
 finalization

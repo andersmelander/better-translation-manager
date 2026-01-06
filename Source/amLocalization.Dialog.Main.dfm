@@ -2178,6 +2178,7 @@ object FormMain: TFormMain
       Hint = 'Open Translation Memory'
       ImageIndex = 23
       OnExecute = ActionTranslationMemoryExecute
+      OnUpdate = ActionTranslationMemoryIsEnabled
     end
     object ActionTranslationMemoryAdd: TAction
       Category = 'Automation'

@@ -418,6 +418,7 @@ type
     procedure EditOllamaBaseURLPropertiesChange(Sender: TObject);
     procedure ButtonOllamaDetectModelsClick(Sender: TObject);
     procedure ButtonOllamaTestClick(Sender: TObject);
+    procedure LayoutGroupTranslatorTMCheckBoxStateChanged(Sender: TObject);
   private
     FSpellCheckerAutoCorrectOptions: TdxSpellCheckerAutoCorrectOptions;
     FRestartRequired: boolean;
@@ -696,22 +697,26 @@ begin
   ComboBoxApplicationLanguage.EditValue := TranslationManagerSettings.System.ApplicationLanguage;
 
   (*
-  ** Translators section
+  ** Providers section
   *)
+  LayoutGroupTranslatorTM.ButtonOptions.CheckBox.Checked := TranslationManagerSettings.Providers.TranslationMemory.Enabled;
   EditProviderTMFilename.Text := TranslationManagerSettings.Providers.TranslationMemory.Filename;
   CheckBoxTMLoadOnDemand.Checked := TranslationManagerSettings.Providers.TranslationMemory.LoadOnDemand;
   CheckBoxTMPromptToSave.Checked := TranslationManagerSettings.Providers.TranslationMemory.PromptToSave;
   CheckBoxTMBackgroundQuery.Checked := TranslationManagerSettings.Providers.TranslationMemory.BackgroundQuery;
 
+  LayoutGroupTranslatorMS.ButtonOptions.CheckBox.Checked := TranslationManagerSettings.Providers.MicrosoftTranslatorV3.Enabled;
   EditTranslatorMSAPIKey.Text := TranslationManagerSettings.Providers.MicrosoftTranslatorV3.APIKey;
   if (TranslationManagerSettings.Providers.MicrosoftTranslatorV3.APIKeyValidated) then
     EditTranslatorMSAPIKey.Properties.Buttons[0].ImageIndex := 1;
   EditTranslatorMSAPIRegion.Text := TranslationManagerSettings.Providers.MicrosoftTranslatorV3.Region;
 
+  LayoutGroupTranslatorDeepL.ButtonOptions.CheckBox.Checked := TranslationManagerSettings.Providers.Deepl.Enabled;
   EditTranslatorDeepLAPIKey.Text := TranslationManagerSettings.Providers.Deepl.APIKey;
   ActionProviderDeepLLicenseFree.Checked := not TranslationManagerSettings.Providers.Deepl.ProVersion;
   ActionProviderDeepLLicensePro.Checked := TranslationManagerSettings.Providers.Deepl.ProVersion;
 
+  LayoutGroupTranslatorOllama.ButtonOptions.CheckBox.Checked := TranslationManagerSettings.Providers.Ollama.Enabled;
   EditOllamaBaseURL.Text := TranslationManagerSettings.Providers.Ollama.BaseURL;
   ComboBoxOllamaModel.Text := TranslationManagerSettings.Providers.Ollama.ModelName;
   EditOllamaTimeout.Value := TranslationManagerSettings.Providers.Ollama.Timeout;
@@ -799,18 +804,22 @@ begin
   (*
   ** Translators section
   *)
+  TranslationManagerSettings.Providers.TranslationMemory.Enabled := LayoutGroupTranslatorTM.ButtonOptions.CheckBox.Checked;
   TranslationManagerSettings.Providers.TranslationMemory.Filename := EditProviderTMFilename.Text;
   TranslationManagerSettings.Providers.TranslationMemory.LoadOnDemand := CheckBoxTMLoadOnDemand.Checked;
   TranslationManagerSettings.Providers.TranslationMemory.PromptToSave := CheckBoxTMPromptToSave.Checked;
   TranslationManagerSettings.Providers.TranslationMemory.BackgroundQuery := CheckBoxTMBackgroundQuery.Checked;
 
+  TranslationManagerSettings.Providers.MicrosoftTranslatorV3.Enabled := LayoutGroupTranslatorMS.ButtonOptions.CheckBox.Checked;
   TranslationManagerSettings.Providers.MicrosoftTranslatorV3.APIKey := EditTranslatorMSAPIKey.Text;
   TranslationManagerSettings.Providers.MicrosoftTranslatorV3.APIKeyValidated := (EditTranslatorMSAPIKey.Properties.Buttons[0].ImageIndex = 1);
   TranslationManagerSettings.Providers.MicrosoftTranslatorV3.Region := EditTranslatorMSAPIRegion.Text;
 
+  TranslationManagerSettings.Providers.Deepl.Enabled := LayoutGroupTranslatorDeepL.ButtonOptions.CheckBox.Checked;
   TranslationManagerSettings.Providers.Deepl.APIKey := EditTranslatorDeepLAPIKey.Text;
   TranslationManagerSettings.Providers.Deepl.ProVersion := ActionProviderDeepLLicensePro.Checked;
 
+  TranslationManagerSettings.Providers.Ollama.Enabled := LayoutGroupTranslatorOllama.ButtonOptions.CheckBox.Checked;
   TranslationManagerSettings.Providers.Ollama.BaseURL := EditOllamaBaseURL.Text;
   TranslationManagerSettings.Providers.Ollama.ModelName := ComboBoxOllamaModel.Text;
   TranslationManagerSettings.Providers.Ollama.Timeout := EditOllamaTimeout.Value;
@@ -1709,6 +1718,14 @@ end;
 procedure TFormSettings.LayoutCheckBoxItemSynthesizeClick(Sender: TObject);
 begin
   LayoutGroupSynthesize.Enabled := LayoutCheckBoxItemSynthesize.Checked;
+end;
+
+procedure TFormSettings.LayoutGroupTranslatorTMCheckBoxStateChanged(Sender: TObject);
+begin
+  // Enabling the TM breaks the TM lookup for some reason, so we need a restart to get it working again.
+  // TODO : todo-marker to flag that this is a known problem
+  if (LayoutGroupTranslatorTM.ButtonOptions.CheckBox.Checked) then
+    RequireRestart;
 end;
 
 procedure TFormSettings.ListViewProofingAutoCorrectReplacementsClick(Sender: TObject);

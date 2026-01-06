@@ -31,6 +31,7 @@ uses
   amLocalization.Model,
   amLocalization.StopList,
   amLocalization.Normalization,
+  amLocalization.Provider.Settings,
   amLocalization.Provider.Ollama.Settings;
 
 
@@ -171,7 +172,7 @@ type
   end;
 
 type
-  TTranslationManagerProviderMicrosoftTranslatorV3Settings = class(TConfigurationSection)
+  TTranslationManagerProviderMicrosoftTranslatorV3Settings = class(TCustomTranslationManagerProviderSettings)
   private
     FAPIKey: string;
     FAPIKeyValidated: boolean;
@@ -185,7 +186,7 @@ type
     property Region: string read FRegion write FRegion;
   end;
 
-  TTranslationManagerProviderTM = class(TConfigurationSection)
+  TTranslationManagerProviderTM = class(TCustomTranslationManagerProviderSettings)
   private
     FFilename: string;
     FLoadOnDemand: boolean;
@@ -201,7 +202,7 @@ type
     property BackgroundQuery: boolean read FBackgroundQuery write FBackgroundQuery default True;
   end;
 
-  TTranslationManagerProviderDeepLSettings = class(TConfigurationSection)
+  TTranslationManagerProviderDeepLSettings = class(TCustomTranslationManagerProviderSettings)
   private
     FAPIKey: string;
     FProVersion: boolean;

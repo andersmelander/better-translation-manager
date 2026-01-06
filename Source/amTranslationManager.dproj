@@ -175,10 +175,6 @@
             <Form>DataModuleMain</Form>
             <DesignClass>TDataModule</DesignClass>
         </DCCReference>
-        <DCCReference Include="amLocalization.Provider.Microsoft.Version3.pas">
-            <Form>TranslationProviderMicrosoftV3</Form>
-            <DesignClass>TDataModule</DesignClass>
-        </DCCReference>
         <DCCReference Include="amLocalization.Dialog.Search.pas">
             <Form>FormSearch</Form>
         </DCCReference>
@@ -193,7 +189,6 @@
         <DCCReference Include="amLocalization.Dialog.TranslationMemory.SelectDuplicate.pas">
             <Form>FormSelectDuplicate</Form>
         </DCCReference>
-        <DCCReference Include="amLocalization.Provider.pas"/>
         <DCCReference Include="amLocalization.Settings.pas"/>
         <DCCReference Include="amLocalization.Dialog.Settings.pas">
             <Form>FormSettings</Form>
@@ -213,6 +208,13 @@
         <DCCReference Include="amLocalization.Dialog.TargetLanguage.pas">
             <Form>FormTargetLanguage</Form>
         </DCCReference>
+        <DCCReference Include="amLocalization.Provider.pas"/>
+        <DCCReference Include="amLocalization.Provider.Settings.pas"/>
+        <DCCReference Include="amLocalization.Provider.TranslationMemory.pas"/>
+        <DCCReference Include="amLocalization.Provider.Microsoft.Version3.pas">
+            <Form>TranslationProviderMicrosoftV3</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
         <DCCReference Include="amLocalization.Provider.DeepL.pas"/>
         <DCCReference Include="amLocalization.Provider.Ollama.pas"/>
         <DCCReference Include="amLocalization.Provider.Ollama.Core.pas"/>
@@ -227,7 +229,6 @@
             <FormType>dfm</FormType>
         </DCCReference>
         <DCCReference Include="amLocalization.StopList.pas"/>
-        <DCCReference Include="amLocalization.Provider.TranslationMemory.pas"/>
         <DCCReference Include="amLocalization.TranslationMemory.pas"/>
         <DCCReference Include="amLocalization.Portable.pas"/>
         <DCCReference Include="amLocalization.Index.pas"/>
