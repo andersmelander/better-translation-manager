@@ -59,7 +59,7 @@ const
 
 // -----------------------------------------------------------------------------
 //
-// TcxGridTableView redirect
+// TcxGridTableView interposer
 //
 // -----------------------------------------------------------------------------
 // Modified to display crHandPoint cursor when mouse is over a hint marker
@@ -70,6 +70,29 @@ type
     function GetControllerClass: TcxCustomGridControllerClass; override;
   end;
 
+
+// -----------------------------------------------------------------------------
+//
+// TcxRichEdit interposer
+//
+// -----------------------------------------------------------------------------
+// Performs position/scroll synchronization between two controls.
+// -----------------------------------------------------------------------------
+type
+  TcxRichEdit = class(cxRichEdit.TcxRichEdit)
+  private
+    FLinkedMemo: TcxRichEdit;
+
+  private
+    procedure SyncLink;
+
+  protected
+    procedure Scroll(AScrollBarKind: TScrollBarKind; AScrollCode: TScrollCode;
+      var AScrollPos: Integer); override;
+  public
+    procedure SetScrollBarsParameters(AIsScrolling: Boolean = False); override;
+    property LinkedMemo: TcxRichEdit read FLinkedMemo write FLinkedMemo;
+  end;
 
 
 // -----------------------------------------------------------------------------
@@ -954,6 +977,9 @@ type
 type
   TcxGridTableViewCracker = class(TcxCustomGridTableView);
 
+type
+  TcxSplitterCracker = class(TcxSplitter);
+
 // -----------------------------------------------------------------------------
 
 function TreeListFindFilter(ANode: TcxTreeListNode; AData: Pointer): Boolean;
@@ -964,12 +990,57 @@ end;
 
 // -----------------------------------------------------------------------------
 //
+// TcxRichEdit interposer
+//
+// -----------------------------------------------------------------------------
+// Synchronize scroll of two memo controls.
+// Inspired by:
+// https://en.delphipraxis.net/topic/13061-how-do-i-synchronize-two-tmemo-scrolling-solved
+// -----------------------------------------------------------------------------
+procedure TcxRichEdit.Scroll(AScrollBarKind: TScrollBarKind; AScrollCode: TScrollCode; var AScrollPos: Integer);
+begin
+  inherited;
+  SyncLink;
+end;
+
+procedure TcxRichEdit.SetScrollBarsParameters(AIsScrolling: Boolean);
+begin
+  inherited;
+  SyncLink;
+end;
+
+procedure TcxRichEdit.SyncLink;
+
+  procedure UpdateScrollBar(BarFlag: Integer; Msg: Cardinal);
+  var
+    ScrollInfo: TScrollInfo;
+  begin
+    ScrollInfo.cbSize := SizeOf(ScrollInfo);
+    ScrollInfo.fMask  := SIF_POS;
+    if GetScrollInfo(InnerRich.Handle, BarFlag, ScrollInfo) then
+      LinkedMemo.InnerRich.Perform(Msg, MAKEWPARAM(SB_THUMBPOSITION, ScrollInfo.nPos), 0);
+  end;
+
+begin
+  if (LinkedMemo = nil) then
+    Exit;
+
+  var SavedLink := LinkedMemo.LinkedMemo;
+  try
+    LinkedMemo.LinkedMemo := nil;
+    UpdateScrollBar(SB_HORZ, WM_HSCROLL);
+    UpdateScrollBar(SB_VERT, WM_VSCROLL);
+  finally
+    LinkedMemo.LinkedMemo := SavedLink;
+  end;
+end;
+
+
+// -----------------------------------------------------------------------------
+//
 // TFormMain
 //
 // -----------------------------------------------------------------------------
-type
-  TcxSplitterCracker = class(TcxSplitter);
-
 constructor TFormMain.Create(AOwner: TComponent);
 begin
   SaveCursor(crAppStart, True);
@@ -1193,6 +1264,9 @@ begin
   ExceptionHandler.RegisterExceptionInfoProvider(Self);
 
   Screen.OnActiveFormChange := ActiveFormChanged;
+
+  EditSourceText.LinkedMemo := EditTargetText;
+  EditTargetText.LinkedMemo := EditSourceText;
 
   SingleInstance.OnProcessParam := LoadFromSingleInstance;
 end;
@@ -8160,7 +8234,7 @@ end;
 
 // -----------------------------------------------------------------------------
 //
-// TcxGridTableView redirect
+// TcxGridTableView interposer
 //
 // -----------------------------------------------------------------------------
 type
