@@ -795,6 +795,7 @@ object FormMain: TFormMain
     end
     object LayoutItemEditorSource: TdxLayoutItem
       Parent = LayoutGroupEditors
+      AlignVert = avClient
       CaptionOptions.Text = 'Lorem ipsum'
       CaptionOptions.Layout = clTop
       Control = EditSourceText
@@ -806,6 +807,7 @@ object FormMain: TFormMain
     object LayoutItemEditorTarget: TdxLayoutItem
       Parent = LayoutGroupEditors
       AlignHorz = ahClient
+      AlignVert = avClient
       CaptionOptions.Text = 'Lorem ipsum'
       CaptionOptions.Layout = clTop
       Control = EditTargetText
