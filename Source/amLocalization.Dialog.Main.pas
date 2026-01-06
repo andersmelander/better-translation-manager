@@ -1350,7 +1350,7 @@ begin
         *)
 
         // Repaint in case colors changed
-        GridItems.Invalidate;
+        GridItems.Invalidate(True);
 
         ActionTranslationMemory.Visible := TranslationManagerSettings.Providers.TranslationMemory.Enabled;
         ActionTranslationMemoryAdd.Visible := TranslationManagerSettings.Providers.TranslationMemory.Enabled;
