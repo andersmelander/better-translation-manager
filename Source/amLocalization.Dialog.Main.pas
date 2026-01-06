@@ -3097,7 +3097,8 @@ begin
   SelStart := MaxInt;
 
   // Open text editor if grid has focus. Otherwise post changes and close text editor.
-  if (IsPropertyActive) then
+  // Note that IsPropertyActive doesn't necessarily indicate that the grid has focus...
+  if (not EditTargetText.Focused) and (IsPropertyActive) then
   begin
     if (GridItemsTableViewColumnTarget.Editing) then
     begin
