@@ -220,6 +220,10 @@
         <DCCReference Include="amLocalization.Provider.Ollama.Core.pas"/>
         <DCCReference Include="amLocalization.Provider.Ollama.API.pas"/>
         <DCCReference Include="amLocalization.Provider.Ollama.Settings.pas"/>
+        <DCCReference Include="amLocalization.Provider.Gemini.pas"/>
+        <DCCReference Include="amLocalization.Provider.Gemini.Core.pas"/>
+        <DCCReference Include="amLocalization.Provider.Gemini.API.pas"/>
+        <DCCReference Include="amLocalization.Provider.Gemini.Settings.pas"/>
         <DCCReference Include="amLocalization.TranslationMemory.FileFormats.GenericCSV.pas"/>
         <DCCReference Include="amLocalization.Dialog.TranslationMemory.SelectFileFormat.pas">
             <Form>FormSelectFileFormat</Form>

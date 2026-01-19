@@ -33,6 +33,7 @@ uses
 
   amLocalization.Settings,
   amLocalization.Provider.Ollama.API,
+  amLocalization.Provider.Gemini.API,
   amLocalization.Dialog,
   amLocalization.Dialog.Settings.API;
 
@@ -47,7 +48,7 @@ type
   end;
 
 type
-  TFormSettings = class(TFormDialog, IDialogSettings, ITranslationProviderSettingsOllama)
+  TFormSettings = class(TFormDialog, IDialogSettings, ITranslationProviderSettingsOllama, ITranslationProviderSettingsGemini)
     ActionFoldersModify: TAction;
     ActionFolderReset: TAction;
     ActionFoldersExplorer: TAction;
@@ -341,6 +342,22 @@ type
     ActionOllamaTest: TAction;
     dxLayoutSeparatorItem3: TdxLayoutSeparatorItem;
     LayoutGroupOllamaButtons: TdxLayoutGroup;
+    LayoutGroupTranslatorGemini: TdxLayoutGroup;
+    LayoutItemGeminiAPIKey: TdxLayoutItem;
+    EditGeminiAPIKey: TcxButtonEdit;
+    LayoutItemGeminiModel: TdxLayoutItem;
+    ComboBoxGeminiModel: TcxComboBox;
+    LayoutItemGeminiTemperature: TdxLayoutItem;
+    EditGeminiTemperature: TcxSpinEdit;
+    LayoutItemGeminiTimeout: TdxLayoutItem;
+    EditGeminiTimeout: TcxSpinEdit;
+    LayoutGroupGeminiButtons: TdxLayoutGroup;
+    LayoutItemGeminiDetectModels: TdxLayoutItem;
+    ButtonGeminiDetectModels: TcxButton;
+    LayoutItemGeminiTest: TdxLayoutItem;
+    ButtonGeminiTest: TcxButton;
+    ActionGeminiDetectModels: TAction;
+    ActionGeminiTest: TAction;
     procedure TextEditTranslatorMSAPIKeyPropertiesButtonClick(Sender: TObject; AButtonIndex: Integer);
     procedure TextEditTranslatorMSAPIKeyPropertiesChange(Sender: TObject);
     procedure ActionCategoryExecute(Sender: TObject);
@@ -419,6 +436,10 @@ type
     procedure ButtonOllamaDetectModelsClick(Sender: TObject);
     procedure ButtonOllamaTestClick(Sender: TObject);
     procedure LayoutGroupTranslatorTMCheckBoxStateChanged(Sender: TObject);
+    procedure EditGeminiAPIKeyPropertiesButtonClick(Sender: TObject; AButtonIndex: Integer);
+    procedure EditGeminiAPIKeyPropertiesChange(Sender: TObject);
+    procedure ButtonGeminiDetectModelsClick(Sender: TObject);
+    procedure ButtonGeminiTestClick(Sender: TObject);
   private
     FSpellCheckerAutoCorrectOptions: TdxSpellCheckerAutoCorrectOptions;
     FRestartRequired: boolean;
@@ -494,6 +515,16 @@ type
     function ITranslationProviderSettingsOllama.GetModelName = GetOllamaModelName;
     function ITranslationProviderSettingsOllama.GetTimeout = GetOllamaTimeout;
 
+    // ITranslationProviderSettingsGemini
+    function GetGeminiAPIKey: string;
+    function GetGeminiModelName: string;
+    function GetGeminiTimeout: integer;
+    function GetGeminiTemperature: single;
+    function ITranslationProviderSettingsGemini.GetAPIKey = GetGeminiAPIKey;
+    function ITranslationProviderSettingsGemini.GetModelName = GetGeminiModelName;
+    function ITranslationProviderSettingsGemini.GetTimeout = GetGeminiTimeout;
+    function ITranslationProviderSettingsGemini.GetTemperature = GetGeminiTemperature;
+
   public
     constructor Create(Awner: TComponent); override;
     destructor Destroy; override;
@@ -543,7 +574,8 @@ uses
   amLocalization.Environment,
   amLocalization.Provider.Microsoft.Version3,
   amLocalization.Provider.DeepL,
-  amLocalization.Provider.Ollama;
+  amLocalization.Provider.Ollama,
+  amLocalization.Provider.Gemini;
 
 resourcestring
   sValueRequired = 'Value required';
@@ -721,6 +753,11 @@ begin
   ComboBoxOllamaModel.Text := TranslationManagerSettings.Providers.Ollama.ModelName;
   EditOllamaTimeout.Value := TranslationManagerSettings.Providers.Ollama.Timeout;
 
+  EditGeminiAPIKey.Text := TranslationManagerSettings.Providers.Gemini.APIKey;
+  ComboBoxGeminiModel.Text := TranslationManagerSettings.Providers.Gemini.ModelName;
+  EditGeminiTimeout.Value := TranslationManagerSettings.Providers.Gemini.Timeout;
+  EditGeminiTemperature.Value := TranslationManagerSettings.Providers.Gemini.Temperature;
+
   (*
   ** Files section
   *)
@@ -824,6 +861,11 @@ begin
   TranslationManagerSettings.Providers.Ollama.ModelName := ComboBoxOllamaModel.Text;
   TranslationManagerSettings.Providers.Ollama.Timeout := EditOllamaTimeout.Value;
 
+  TranslationManagerSettings.Providers.Gemini.APIKey := EditGeminiAPIKey.Text;
+  TranslationManagerSettings.Providers.Gemini.ModelName := ComboBoxGeminiModel.Text;
+  TranslationManagerSettings.Providers.Gemini.Timeout := EditGeminiTimeout.Value;
+  TranslationManagerSettings.Providers.Gemini.Temperature := EditGeminiTemperature.Value;
+
   (*
   ** Files section
   *)
@@ -903,6 +945,28 @@ begin
   DataModuleMain.ColorTheme := FColorTheme;
   DataModuleMain.CustomSkinName := GetSkin;
   DataModuleMain.CustomColorScheme := ComboBoxColorScheme.Text;
+end;
+
+// -----------------------------------------------------------------------------
+
+function TFormSettings.GetGeminiAPIKey: string;
+begin
+  Result := EditGeminiAPIKey.Text;
+end;
+
+function TFormSettings.GetGeminiModelName: string;
+begin
+  Result := ComboBoxGeminiModel.Text;
+end;
+
+function TFormSettings.GetGeminiTimeout: integer;
+begin
+  Result := EditGeminiTimeout.Value;
+end;
+
+function TFormSettings.GetGeminiTemperature: single;
+begin
+  Result := EditGeminiTemperature.Value;
 end;
 
 // -----------------------------------------------------------------------------
@@ -1865,6 +1929,123 @@ begin
       MessageDlg('Successfully connected to Ollama server.', mtInformation, [mbOK], 0);
     end else
       MessageDlg(Format('Connection failed: %s', [ErrorMessage]), mtWarning, [mbOK], 0);
+  finally
+    TranslationProvider := nil;
+  end;
+end;
+
+// -----------------------------------------------------------------------------
+//
+// Gemini provider handlers
+//
+// -----------------------------------------------------------------------------
+
+procedure TFormSettings.EditGeminiAPIKeyPropertiesButtonClick(Sender: TObject; AButtonIndex: Integer);
+var
+  TranslationProvider: ITranslationProviderGemini;
+  ErrorMessage: string;
+begin
+  EditGeminiAPIKey.Properties.Buttons[AButtonIndex].ImageIndex := 0;
+
+  SaveCursor(crAppStart);
+
+  TranslationProvider := TTranslationProviderGemini.Create(Self);
+  try
+    if TranslationProvider.ValidateAPIKey(EditGeminiAPIKey.Text, ErrorMessage) then
+    begin
+      EditGeminiAPIKey.Properties.Buttons[AButtonIndex].ImageIndex := 1;
+      MessageDlg('Successfully validated Gemini API Key.', mtInformation, [mbOK], 0);
+    end else
+      MessageDlg(Format('Validation failed: %s', [ErrorMessage]), mtWarning, [mbOK], 0);
+  finally
+    TranslationProvider := nil;
+  end;
+end;
+
+procedure TFormSettings.EditGeminiAPIKeyPropertiesChange(Sender: TObject);
+begin
+  // API Key no longer validated
+  EditGeminiAPIKey.Properties.Buttons[0].ImageIndex := 0;
+end;
+
+procedure TFormSettings.ButtonGeminiDetectModelsClick(Sender: TObject);
+begin
+  if GetGeminiAPIKey.Trim.IsEmpty then
+  begin
+    MessageDlg('Please enter the Gemini API Key first.', mtWarning, [mbOK], 0);
+    Exit;
+  end;
+
+  var TranslationProvider: ITranslationProviderGemini := TTranslationProviderGemini.Create(Self);
+  try
+    SaveCursor(crHourGlass);
+
+    var CurrentModel := ComboBoxGeminiModel.Text;
+    var ErrorMessage: string;
+
+    if (TranslationProvider.GetModels(ComboBoxGeminiModel.Properties.Items, ErrorMessage)) then
+    begin
+      // Try to restore previous selection
+      if (CurrentModel <> '') and (ComboBoxGeminiModel.Properties.Items.IndexOf(CurrentModel) >= 0) then
+        ComboBoxGeminiModel.Text := CurrentModel
+      else
+        ComboBoxGeminiModel.ItemIndex := 0;
+    end else
+      MessageDlg(Format('Failed to detect models: %s', [ErrorMessage]), mtError, [mbOK], 0);
+
+  finally
+    TranslationProvider := nil;
+  end;
+end;
+
+procedure TFormSettings.ButtonGeminiTestClick(Sender: TObject);
+begin
+  if GetGeminiAPIKey.Trim.IsEmpty then
+  begin
+    MessageDlg('Please enter the Gemini API Key first.', mtWarning, [mbOK], 0);
+    Exit;
+  end;
+
+  if GetGeminiModelName.Trim.IsEmpty then
+  begin
+    MessageDlg('Please select or enter a model name first.', mtWarning, [mbOK], 0);
+    Exit;
+  end;
+
+  SaveCursor(crHourGlass);
+
+  var TranslationProvider: ITranslationProviderGemini := TTranslationProviderGemini.Create(Self);
+  try
+    var AllTestsPassed := True;
+    var ErrorMessage: string;
+
+    // Test 1: API Key validation
+    if not TranslationProvider.ValidateAPIKey(GetGeminiAPIKey, ErrorMessage) then
+    begin
+      MessageDlg(Format('API Key validation failed: %s', [ErrorMessage]), mtError, [mbOK], 0);
+      AllTestsPassed := False;
+    end else
+
+    // Test 2: Model validation
+    if not TranslationProvider.ValidateModel(ErrorMessage) then
+    begin
+      MessageDlg(Format('Model validation failed: %s', [ErrorMessage]), mtError, [mbOK], 0);
+      AllTestsPassed := False;
+    end else
+
+    // Test 3: Translation test
+    if not TranslationProvider.TestTranslation(ErrorMessage) then
+    begin
+      MessageDlg(Format('Translation test failed: %s', [ErrorMessage]), mtError, [mbOK], 0);
+      AllTestsPassed := False;
+    end;
+
+    if AllTestsPassed then
+      MessageDlg('All tests passed successfully!' + #13#10 +
+                 '- API Key: OK' + #13#10 +
+                 '- Model available: OK' + #13#10 +
+                 '- Translation: OK', mtInformation, [mbOK], 0);
+
   finally
     TranslationProvider := nil;
   end;

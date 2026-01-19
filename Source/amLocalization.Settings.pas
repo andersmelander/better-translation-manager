@@ -32,7 +32,8 @@ uses
   amLocalization.StopList,
   amLocalization.Normalization,
   amLocalization.Provider.Settings,
-  amLocalization.Provider.Ollama.Settings;
+  amLocalization.Provider.Ollama.Settings,
+  amLocalization.Provider.Gemini.Settings;
 
 
 //------------------------------------------------------------------------------
@@ -218,6 +219,7 @@ type
     FTranslationMemory: TTranslationManagerProviderTM;
     FDeepL: TTranslationManagerProviderDeepLSettings;
     FOllama: TTranslationManagerProviderOllamaSettings;
+    FGemini: TTranslationManagerProviderGeminiSettings;
   public
     constructor Create(AOwner: TConfigurationSection); override;
     destructor Destroy; override;
@@ -227,6 +229,7 @@ type
     property TranslationMemory: TTranslationManagerProviderTM read FTranslationMemory;
     property DeepL: TTranslationManagerProviderDeepLSettings read FDeepL;
     property Ollama: TTranslationManagerProviderOllamaSettings read FOllama;
+    property Gemini: TTranslationManagerProviderGeminiSettings read FGemini;
   end;
 
   TTranslationManagerProofingSettings = class(TConfigurationSection)
@@ -971,10 +974,12 @@ begin
   FTranslationMemory := TTranslationManagerProviderTM.Create(Self);
   FDeepL := TTranslationManagerProviderDeepLSettings.Create(Self);
   FOllama := TTranslationManagerProviderOllamaSettings.Create(Self);
+  FGemini := TTranslationManagerProviderGeminiSettings.Create(Self);
 end;
 
 destructor TTranslationManagerProviderSettings.Destroy;
 begin
+  FGemini.Free;
   FOllama.Free;
   FDeepL.Free;
   FMicrosoftV3.Free;
