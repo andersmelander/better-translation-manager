@@ -27,6 +27,8 @@ uses
 
 type
   TTranslationProviderGemini = class(TInterfacedObject, ITranslationProvider, ITranslationProviderGemini)
+  private const
+    sBaseURL = 'https://generativelanguage.googleapis.com/v1beta';
   private
     FSettings: ITranslationProviderSettingsGemini;
 
@@ -135,7 +137,7 @@ begin
     HTTPClient.ConnectionTimeout := Timeout;
     HTTPClient.ResponseTimeout := Timeout;
 
-    var URL := 'https://generativelanguage.googleapis.com/v1beta/models?key=' + APIKey;
+    var URL := Format('%s/%s?key=%s', [sBaseURL, '/models', APIKey]);
 
     try
       var HTTPResponse := HTTPClient.Get(URL);
@@ -144,14 +146,16 @@ begin
       begin
         var JSONResponse := TJSONObject.ParseJSONValue(HTTPResponse.ContentAsString(TEncoding.UTF8)) as TJSONObject;
         if (JSONResponse <> nil) then
-        try
-          var ErrorObj := JSONResponse.GetValue('error') as TJSONObject;
-          if (ErrorObj <> nil) then
-            AErrorMessage := ErrorObj.GetValue<string>('message')
-          else
-            AErrorMessage := HTTPResponse.StatusText;
-        finally
-          JSONResponse.Free;
+        begin
+          try
+            var ErrorObj := JSONResponse.GetValue('error') as TJSONObject;
+            if (ErrorObj <> nil) then
+              AErrorMessage := ErrorObj.GetValue<string>('message')
+            else
+              AErrorMessage := HTTPResponse.StatusText;
+          finally
+            JSONResponse.Free;
+          end;
         end else
           AErrorMessage := HTTPResponse.StatusText;
         Exit;
@@ -180,14 +184,14 @@ begin
             var Name := JSONModel.GetValue<string>('name');
             // Name is usually "models/gemini-1.5-flash", we might want to strip "models/"
             if Name.StartsWith('models/') then
-              Name := Name.Substring(7);
+              Delete(Name, 1, 7);
 
             // Only add models that support content generation
             var SupportedMethods := JSONModel.GetValue('supportedGenerationMethods') as TJSONArray;
             if (SupportedMethods <> nil) then
             begin
               for var Method in SupportedMethods do
-                if Method.Value = 'generateContent' then
+                if (Method.Value = 'generateContent') then
                 begin
                   AModelNames.Add(Name);
                   break;
@@ -259,7 +263,7 @@ begin
     HTTPClient.ResponseTimeout := 5000;
 
     // Use a simple API call to validate the key
-    var URL := 'https://generativelanguage.googleapis.com/v1beta/models?key=' + AAPIKey;
+    var URL := Format('%s/%s?key=%s', [sBaseURL, '/models', AAPIKey]);
 
     try
       var HTTPResponse := HTTPClient.Get(URL);
@@ -299,7 +303,7 @@ begin
     if not ModelPath.StartsWith('models/') then
       ModelPath := 'models/' + ModelPath;
 
-    var URL := Format('https://generativelanguage.googleapis.com/v1beta/%s?key=%s', [ModelPath, APIKey]);
+    var URL := Format('%s/%s?key=%s', [sBaseURL, ModelPath, APIKey]);
 
     try
       var HTTPResponse := HTTPClient.Get(URL);
@@ -381,7 +385,7 @@ begin
       if not ModelPath.StartsWith('models/') then
         ModelPath := 'models/' + ModelPath;
 
-      var URL := Format('https://generativelanguage.googleapis.com/v1beta/%s:generateContent?key=%s', [ModelPath, APIKey]);
+      var URL := Format('%s/%s:%s?key=%s', [sBaseURL, ModelPath, 'generateContent', APIKey]);
 
       var RequestContent := TStringStream.Create(RequestJSON.ToJSON, TEncoding.UTF8);
       try
@@ -394,17 +398,20 @@ begin
           if (HTTPResponse.StatusCode <> 200) then
           begin
             var JSONResponse := TJSONObject.ParseJSONValue(HTTPResponse.ContentAsString(TEncoding.UTF8)) as TJSONObject;
-            if (JSONResponse <> nil) then
+
+            if (JSONResponse = nil) then
+              raise EGeminiLocalizationProvider.Create(HTTPResponse.StatusText);
+
             try
               var ErrorObj := JSONResponse.GetValue('error') as TJSONObject;
+
               if (ErrorObj <> nil) then
-                raise EGeminiLocalizationProvider.Create(ErrorObj.GetValue<string>('message'))
-              else
-                raise EGeminiLocalizationProvider.Create(HTTPResponse.StatusText);
+                raise EGeminiLocalizationProvider.Create(ErrorObj.GetValue<string>('message'));
+
+              raise EGeminiLocalizationProvider.Create(HTTPResponse.StatusText);
             finally
               JSONResponse.Free;
-            end else
-              raise EGeminiLocalizationProvider.Create(HTTPResponse.StatusText);
+            end;
           end;
 
           var ResponseJSON := TJSONObject.ParseJSONValue(HTTPResponse.ContentAsString(TEncoding.UTF8)) as TJSONObject;
@@ -414,17 +421,20 @@ begin
           try
             // Check for candidates
             var Candidates := ResponseJSON.GetValue('candidates') as TJSONArray;
+
             if (Candidates = nil) or (Candidates.Count = 0) then
             begin
-                // Check if it was blocked
-                var PromptFeedback := ResponseJSON.GetValue('promptFeedback') as TJSONObject;
-                if (PromptFeedback <> nil) then
-                begin
-                    var BlockReason := PromptFeedback.GetValue<string>('blockReason');
-                    if not BlockReason.IsEmpty then
-                        raise EGeminiLocalizationProvider.CreateFmt(sGeminiErrorBlocked, [BlockReason]);
-                end;
-                raise EGeminiLocalizationProvider.Create(sGeminiErrorEmptyResponse);
+              // Check if it was blocked
+              var PromptFeedback := ResponseJSON.GetValue('promptFeedback') as TJSONObject;
+
+              if (PromptFeedback <> nil) then
+              begin
+                var BlockReason := PromptFeedback.GetValue<string>('blockReason');
+                if not BlockReason.IsEmpty then
+                  raise EGeminiLocalizationProvider.CreateFmt(sGeminiErrorBlocked, [BlockReason]);
+              end;
+
+              raise EGeminiLocalizationProvider.Create(sGeminiErrorEmptyResponse);
             end;
 
             var Candidate := Candidates.Items[0] as TJSONObject;
@@ -433,19 +443,19 @@ begin
             var FinishReason := Candidate.GetValue<string>('finishReason');
             if (FinishReason <> 'STOP') and (FinishReason <> '') then
             begin
-                if FinishReason = 'SAFETY' then
-                    raise EGeminiLocalizationProvider.Create(sGeminiErrorSafetyFilter)
-                else
-                    raise EGeminiLocalizationProvider.CreateFmt(sGeminiErrorBlocked, [FinishReason]);
+              if FinishReason = 'SAFETY' then
+                raise EGeminiLocalizationProvider.Create(sGeminiErrorSafetyFilter);
+
+              raise EGeminiLocalizationProvider.CreateFmt(sGeminiErrorBlocked, [FinishReason]);
             end;
 
             var Content := Candidate.GetValue('content') as TJSONObject;
             if (Content = nil) then
-                raise EGeminiLocalizationProvider.Create(sGeminiErrorEmptyResponse);
+              raise EGeminiLocalizationProvider.Create(sGeminiErrorEmptyResponse);
 
             var Parts := Content.GetValue('parts') as TJSONArray;
             if (Parts = nil) or (Parts.Count = 0) then
-                raise EGeminiLocalizationProvider.Create(sGeminiErrorEmptyResponse);
+              raise EGeminiLocalizationProvider.Create(sGeminiErrorEmptyResponse);
 
             var Part := Parts.Items[0] as TJSONObject;
             var RawResponse := Part.GetValue<string>('text');
