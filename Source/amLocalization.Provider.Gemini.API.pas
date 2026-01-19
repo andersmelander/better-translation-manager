@@ -1,4 +1,4 @@
-unit amLocalization.Provider.Gemini.API;
+﻿unit amLocalization.Provider.Gemini.API;
 
 (*
  * Copyright © 2026 Anders Melander
@@ -30,11 +30,13 @@ type
     function GetModelName: string;
     function GetTimeout: integer;
     function GetTemperature: single;
+    function GetRateLimit: integer;
 
     property APIKey: string read GetAPIKey;
     property ModelName: string read GetModelName;
     property Timeout: integer read GetTimeout;
     property Temperature: single read GetTemperature;
+    property RateLimit: integer read GetRateLimit;
   end;
 
 implementation

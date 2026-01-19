@@ -17,6 +17,7 @@ uses
   amLanguageInfo,
   amLocalization.Model,
   amLocalization.Provider,
+  amLocalization.Provider.RateLimiter,
   amLocalization.Provider.Gemini.API;
 
 // -----------------------------------------------------------------------------
@@ -31,6 +32,7 @@ type
     sBaseURL = 'https://generativelanguage.googleapis.com/v1beta';
   private
     FSettings: ITranslationProviderSettingsGemini;
+    FRateLimiter: IRateLimiter;
 
   private
     function GetAPIKey: string;
@@ -38,6 +40,7 @@ type
     function GetTimeout: integer;
     function GetTemperature: single;
     function TranslateText(const ASourceLang, ATargetLang, AText: string): string;
+    function DoTranslateText(const ASourceLang, ATargetLang, AText: string): string;
 
   private
     /// <summary>
@@ -102,7 +105,30 @@ resourcestring
   sGeminiErrorBlocked = 'Translation was blocked. Reason: %s';
 
 type
-  EGeminiLocalizationProvider = class(ELocalizationProvider);
+  EGeminiLocalizationProvider = class(ELocalizationProvider)
+  private
+    FStatusCode: Integer;
+  public
+    constructor Create(const AMessage: string; AStatusCode: Integer = 0);
+    constructor CreateFmt(const AMessage: string; const AArgs: array of const; AStatusCode: Integer = 0);
+
+    property StatusCode: Integer read FStatusCode;
+  end;
+
+{ EGeminiLocalizationProvider }
+
+constructor EGeminiLocalizationProvider.Create(const AMessage: string; AStatusCode: Integer);
+begin
+  inherited Create(AMessage);
+  FStatusCode := AStatusCode;
+end;
+
+constructor EGeminiLocalizationProvider.CreateFmt(const AMessage: string; const AArgs: array of const; AStatusCode: Integer);
+begin
+  inherited CreateFmt(AMessage, AArgs);
+  FStatusCode := AStatusCode;
+end;
+
 
 // -----------------------------------------------------------------------------
 //
@@ -381,6 +407,49 @@ begin
 end;
 
 function TTranslationProviderGemini.TranslateText(const ASourceLang, ATargetLang, AText: string): string;
+var
+  RetryCount: Integer;
+  Delay: Integer;
+begin
+  RetryCount := 0;
+  Delay := 2000; // Start with 2s delay
+
+  while True do
+  begin
+
+    if (FRateLimiter = nil) then
+      FRateLimiter := CreateRateLimiter(FSettings.RateLimit)
+    else
+      FRateLimiter.SetMaxRPM(FSettings.RateLimit);
+
+    FRateLimiter.WaitForSlot;
+
+    try
+
+      Result := DoTranslateText(ASourceLang, ATargetLang, AText);
+      break;
+
+    except
+      on E: EGeminiLocalizationProvider do
+      begin
+        // Retry on 429 Too Many Requests
+        if (E.StatusCode <> 429) then
+          raise;
+
+        Inc(RetryCount);
+        if (RetryCount > 3) then
+          raise;
+
+        TThread.Sleep(Delay);
+
+        Delay := Delay * 2; // Exponential backoff
+        continue;
+      end;
+    end;
+  end;
+end;
+
+function TTranslationProviderGemini.DoTranslateText(const ASourceLang, ATargetLang, AText: string): string;
 begin
   Result := '';
 
@@ -433,15 +502,15 @@ begin
             var JSONResponse := TJSONObject.ParseJSONValue(HTTPResponse.ContentAsString(TEncoding.UTF8)) as TJSONObject;
 
             if (JSONResponse = nil) then
-              raise EGeminiLocalizationProvider.Create(HTTPResponse.StatusText);
+              raise EGeminiLocalizationProvider.Create(HTTPResponse.StatusText, HTTPResponse.StatusCode);
 
             try
               var ErrorObj := JSONResponse.GetValue('error') as TJSONObject;
 
               if (ErrorObj <> nil) then
-                raise EGeminiLocalizationProvider.Create(ErrorObj.GetValue<string>('message'));
+                raise EGeminiLocalizationProvider.Create(ErrorObj.GetValue<string>('message'), HTTPResponse.StatusCode);
 
-              raise EGeminiLocalizationProvider.Create(HTTPResponse.StatusText);
+              raise EGeminiLocalizationProvider.Create(HTTPResponse.StatusText, HTTPResponse.StatusCode);
             finally
               JSONResponse.Free;
             end;
@@ -464,10 +533,10 @@ begin
               begin
                 var BlockReason := PromptFeedback.GetValue<string>('blockReason');
                 if not BlockReason.IsEmpty then
-                  raise EGeminiLocalizationProvider.CreateFmt(sGeminiErrorBlocked, [BlockReason]);
+                  raise EGeminiLocalizationProvider.CreateFmt(sGeminiErrorBlocked, [BlockReason], HTTPResponse.StatusCode);
               end;
 
-              raise EGeminiLocalizationProvider.Create(sGeminiErrorEmptyResponse);
+              raise EGeminiLocalizationProvider.Create(sGeminiErrorEmptyResponse, HTTPResponse.StatusCode);
             end;
 
             var Candidate := Candidates.Items[0] as TJSONObject;
@@ -477,24 +546,24 @@ begin
             if (FinishReason <> 'STOP') and (FinishReason <> '') then
             begin
               if FinishReason = 'SAFETY' then
-                raise EGeminiLocalizationProvider.Create(sGeminiErrorSafetyFilter);
+                raise EGeminiLocalizationProvider.Create(sGeminiErrorSafetyFilter, HTTPResponse.StatusCode);
 
-              raise EGeminiLocalizationProvider.CreateFmt(sGeminiErrorBlocked, [FinishReason]);
+              raise EGeminiLocalizationProvider.CreateFmt(sGeminiErrorBlocked, [FinishReason], HTTPResponse.StatusCode);
             end;
 
             var Content := Candidate.GetValue('content') as TJSONObject;
             if (Content = nil) then
-              raise EGeminiLocalizationProvider.Create(sGeminiErrorEmptyResponse);
+              raise EGeminiLocalizationProvider.Create(sGeminiErrorEmptyResponse, HTTPResponse.StatusCode);
 
             var Parts := Content.GetValue('parts') as TJSONArray;
             if (Parts = nil) or (Parts.Count = 0) then
-              raise EGeminiLocalizationProvider.Create(sGeminiErrorEmptyResponse);
+              raise EGeminiLocalizationProvider.Create(sGeminiErrorEmptyResponse, HTTPResponse.StatusCode);
 
             var Part := Parts.Items[0] as TJSONObject;
             var RawResponse := Part.GetValue<string>('text');
 
             if (RawResponse.Trim.IsEmpty) then
-              raise EGeminiLocalizationProvider.Create(sGeminiErrorEmptyResponse);
+              raise EGeminiLocalizationProvider.Create(sGeminiErrorEmptyResponse, HTTPResponse.StatusCode);
 
             Result := ExtractTranslation(RawResponse);
 

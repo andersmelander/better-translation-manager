@@ -63,6 +63,7 @@ uses
   amLocalization.Dialog.TargetLanguage in 'amLocalization.Dialog.TargetLanguage.pas' {FormTargetLanguage},
   amLocalization.Provider in 'amLocalization.Provider.pas',
   amLocalization.Provider.Settings in 'amLocalization.Provider.Settings.pas',
+  amLocalization.Provider.RateLimiter in 'amLocalization.Provider.RateLimiter.pas',
   amLocalization.Provider.TranslationMemory in 'amLocalization.Provider.TranslationMemory.pas',
   amLocalization.Provider.Microsoft.Version3 in 'amLocalization.Provider.Microsoft.Version3.pas' {TranslationProviderMicrosoftV3: TDataModule},
   amLocalization.Provider.DeepL in 'amLocalization.Provider.DeepL.pas',

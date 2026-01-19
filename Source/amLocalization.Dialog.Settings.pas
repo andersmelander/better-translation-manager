@@ -358,6 +358,8 @@ type
     ButtonGeminiTest: TcxButton;
     ActionGeminiDetectModels: TAction;
     ActionGeminiTest: TAction;
+    LayoutItemGeminiRateLimit: TdxLayoutItem;
+    EditGeminiRateLimit: TcxSpinEdit;
     procedure TextEditTranslatorMSAPIKeyPropertiesButtonClick(Sender: TObject; AButtonIndex: Integer);
     procedure TextEditTranslatorMSAPIKeyPropertiesChange(Sender: TObject);
     procedure ActionCategoryExecute(Sender: TObject);
@@ -522,10 +524,12 @@ type
     function GetGeminiModelName: string;
     function GetGeminiTimeout: integer;
     function GetGeminiTemperature: single;
+    function GetGeminiRateLimit: integer;
     function ITranslationProviderSettingsGemini.GetAPIKey = GetGeminiAPIKey;
     function ITranslationProviderSettingsGemini.GetModelName = GetGeminiModelName;
     function ITranslationProviderSettingsGemini.GetTimeout = GetGeminiTimeout;
     function ITranslationProviderSettingsGemini.GetTemperature = GetGeminiTemperature;
+    function ITranslationProviderSettingsGemini.GetRateLimit = GetGeminiRateLimit;
 
   public
     constructor Create(Awner: TComponent); override;
@@ -759,6 +763,7 @@ begin
   ComboBoxGeminiModel.Text := TranslationManagerSettings.Providers.Gemini.ModelName;
   EditGeminiTimeout.Value := TranslationManagerSettings.Providers.Gemini.Timeout;
   EditGeminiTemperature.Value := TranslationManagerSettings.Providers.Gemini.Temperature;
+  EditGeminiRateLimit.Value := TranslationManagerSettings.Providers.Gemini.RateLimit;
 
   (*
   ** Files section
@@ -867,6 +872,7 @@ begin
   TranslationManagerSettings.Providers.Gemini.ModelName := ComboBoxGeminiModel.Text;
   TranslationManagerSettings.Providers.Gemini.Timeout := EditGeminiTimeout.Value;
   TranslationManagerSettings.Providers.Gemini.Temperature := EditGeminiTemperature.Value;
+  TranslationManagerSettings.Providers.Gemini.RateLimit := EditGeminiRateLimit.Value;
 
   (*
   ** Files section
@@ -959,6 +965,11 @@ end;
 function TFormSettings.GetGeminiModelName: string;
 begin
   Result := ComboBoxGeminiModel.Text;
+end;
+
+function TFormSettings.GetGeminiRateLimit: integer;
+begin
+  Result := EditGeminiRateLimit.Value;
 end;
 
 function TFormSettings.GetGeminiTimeout: integer;

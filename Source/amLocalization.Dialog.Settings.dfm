@@ -1571,6 +1571,25 @@ inherited FormSettings: TFormSettings
       Transparent = True
       Visible = False
     end
+    object EditGeminiRateLimit: TcxSpinEdit [89]
+      Left = 181
+      Top = 442
+      Hint = 
+        'Requests Per Minute'#13#10'The value is tied to the Gemini project ass' +
+        'ociated with the specified API key.'#13#10'The actual rate limit that ' +
+        'Gemini enforces can be viewed in Google AI Studio under Usage an' +
+        'd Billing.'
+      Properties.Alignment.Horz = taRightJustify
+      Properties.AssignedValues.MinValue = True
+      Properties.DisplayFormat = ',0 RPM'
+      Properties.EditFormat = '#'
+      Properties.UseLeftAlignmentOnEditing = False
+      Properties.ValueType = vtInt
+      Style.HotTrack = False
+      Style.TransparentBorder = False
+      TabOrder = 44
+      Width = 100
+    end
     inherited LayoutControlGroup_Root: TdxLayoutGroup
       AlignVert = avClient
       ItemIndex = 1
@@ -2938,7 +2957,7 @@ inherited FormSettings: TFormSettings
       CaptionOptions.Text = 'Google Gemini'
       ButtonOptions.CheckBox.Visible = True
       ButtonOptions.ShowExpandButton = True
-      ItemIndex = 5
+      ItemIndex = 4
       Index = 4
     end
     object LayoutItemGeminiAPIKey: TdxLayoutItem
@@ -2982,7 +3001,7 @@ inherited FormSettings: TFormSettings
     object dxLayoutSeparatorItemGemini: TdxLayoutSeparatorItem
       Parent = LayoutGroupTranslatorGemini
       CaptionOptions.Text = 'Separator'
-      Index = 4
+      Index = 5
     end
     object LayoutGroupGeminiButtons: TdxLayoutGroup
       Parent = LayoutGroupTranslatorGemini
@@ -2991,7 +3010,7 @@ inherited FormSettings: TFormSettings
       Hidden = True
       LayoutDirection = ldHorizontal
       ShowBorder = False
-      Index = 5
+      Index = 6
     end
     object LayoutItemGeminiDetectModels: TdxLayoutItem
       Parent = LayoutGroupGeminiButtons
@@ -3013,6 +3032,16 @@ inherited FormSettings: TFormSettings
       ControlOptions.OriginalWidth = 120
       ControlOptions.ShowBorder = False
       Index = 1
+    end
+    object LayoutItemGeminiRateLimit: TdxLayoutItem
+      Parent = LayoutGroupTranslatorGemini
+      AlignHorz = ahLeft
+      CaptionOptions.Text = 'Rate limit:'
+      Control = EditGeminiRateLimit
+      ControlOptions.OriginalHeight = 21
+      ControlOptions.OriginalWidth = 100
+      ControlOptions.ShowBorder = False
+      Index = 4
     end
   end
   inherited ActionList: TActionList

@@ -21,12 +21,14 @@ type
     FModelName: string;
     FTimeout: integer;
     FTemperature: single;
+    FRateLimit: integer;
   private
     // ITranslationProviderSettingsGemini
     function GetAPIKey: string;
     function GetModelName: string;
     function GetTimeout: integer;
     function GetTemperature: single;
+    function GetRateLimit: integer;
   protected
     procedure ApplyDefault; override;
   published
@@ -34,6 +36,7 @@ type
     property ModelName: string read FModelName write FModelName;
     property Timeout: integer read FTimeout write FTimeout default 30000;
     property Temperature: single read FTemperature write FTemperature;
+    property RateLimit: integer read FRateLimit write FRateLimit default 15; // Requests Per Minute
   end;
 
 implementation
@@ -48,6 +51,7 @@ begin
   FModelName := 'gemini-1.5-flash';
   FTimeout := 30000; // 30 seconds
   FTemperature := 0.2;
+  FRateLimit := 15;
 end;
 
 function TTranslationManagerProviderGeminiSettings.GetAPIKey: string;
@@ -58,6 +62,11 @@ end;
 function TTranslationManagerProviderGeminiSettings.GetModelName: string;
 begin
   Result := FModelName;
+end;
+
+function TTranslationManagerProviderGeminiSettings.GetRateLimit: integer;
+begin
+  Result := FRateLimit;
 end;
 
 function TTranslationManagerProviderGeminiSettings.GetTimeout: integer;
