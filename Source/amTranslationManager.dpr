@@ -71,7 +71,6 @@ uses
   amLocalization.Provider.Ollama.API in 'amLocalization.Provider.Ollama.API.pas',
   amLocalization.Provider.Ollama.Settings in 'amLocalization.Provider.Ollama.Settings.pas',
   amLocalization.Provider.Gemini in 'amLocalization.Provider.Gemini.pas',
-  amLocalization.Provider.Gemini.Core in 'amLocalization.Provider.Gemini.Core.pas',
   amLocalization.Provider.Gemini.API in 'amLocalization.Provider.Gemini.API.pas',
   amLocalization.Provider.Gemini.Settings in 'amLocalization.Provider.Gemini.Settings.pas',
   amLocalization.TranslationMemory.FileFormats.GenericCSV in 'amLocalization.TranslationMemory.FileFormats.GenericCSV.pas',

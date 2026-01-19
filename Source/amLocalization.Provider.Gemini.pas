@@ -1,7 +1,7 @@
 ﻿unit amLocalization.Provider.Gemini;
 
 (*
- * Copyright © 2025 Anders Melander
+ * Copyright © 2026 Anders Melander
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -38,7 +38,16 @@ type
     function GetTimeout: integer;
     function GetTemperature: single;
     function TranslateText(const ASourceLang, ATargetLang, AText: string): string;
+
+  private
+    /// <summary>
+    /// Extracts clean translation from Gemini's raw response.
+    /// </summary>
     function ExtractTranslation(const ARawResponse: string): string;
+
+    /// <summary>
+    /// Builds a translation prompt for the Gemini LLM.
+    /// </summary>
     function BuildPrompt(const ASourceLang, ATargetLang, AText: string): string;
 
   private
@@ -73,8 +82,8 @@ uses
   System.Net.HttpClient,
   System.Net.URLClient,
   System.JSON,
-  amLocalization.Settings,
-  amLocalization.Provider.Gemini.Core;
+  System.RegularExpressions,
+  amLocalization.Settings;
 
 resourcestring
   sProviderNameGemini = 'Google Gemini';
@@ -228,7 +237,20 @@ end;
 
 function TTranslationProviderGemini.BuildPrompt(const ASourceLang, ATargetLang, AText: string): string;
 begin
-  Result := TGeminiCore.BuildPrompt(ASourceLang, ATargetLang, AText);
+  Result := Format(
+    'You are a professional translator.'#13#10 +
+    'Translate the following text from %s to %s.'#13#10 +
+    #13#10 +
+    'Rules:'#13#10 +
+    '- Output ONLY the translated text'#13#10 +
+    '- Do not add explanations, notes, or any other additional text'#13#10 +
+    '- Preserve the original formatting and punctuation'#13#10 +
+    '- Maintain the same level of formality'#13#10 +
+    '- Keep any placeholders (e.g. %%s, %%d, {0}) exactly as they are'#13#10 +
+    #13#10 +
+    'Text to translate:'#13#10 +
+    '%s',
+    [ASourceLang, ATargetLang, AText]);
 end;
 
 constructor TTranslationProviderGemini.Create(const ASettings: ITranslationProviderSettingsGemini);
@@ -243,7 +265,18 @@ end;
 
 function TTranslationProviderGemini.ExtractTranslation(const ARawResponse: string): string;
 begin
-  Result := TGeminiCore.ExtractTranslation(ARawResponse);
+  Result := ARawResponse.Trim;
+
+  // Remove common prefixes if any (Gemini usually follows instructions well)
+  Result := TRegEx.Replace(Result, '^(Translation:|Translated text:|Result:|The translation is:)', '', [roIgnoreCase]);
+
+  // Trim again
+  Result := Result.Trim;
+
+  // Remove surrounding quotes if the model added them
+  if (Result.Length >= 2) and
+     ((Result[1] = '"') and (Result[Result.Length] = '"')) then
+    Result := Result.Substring(1, Result.Length - 2);
 end;
 
 function TTranslationProviderGemini.ValidateAPIKey(const AAPIKey: string; var AErrorMessage: string): boolean;

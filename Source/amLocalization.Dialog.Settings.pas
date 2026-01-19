@@ -433,13 +433,14 @@ type
     procedure EditTranslatorDeepLAPIKeyPropertiesChange(Sender: TObject);
     procedure EditOllamaBaseURLPropertiesButtonClick(Sender: TObject; AButtonIndex: Integer);
     procedure EditOllamaBaseURLPropertiesChange(Sender: TObject);
-    procedure ButtonOllamaDetectModelsClick(Sender: TObject);
-    procedure ButtonOllamaTestClick(Sender: TObject);
+    procedure ActionOllamaDetectModelsExecute(Sender: TObject);
+    procedure ActionOllamaTestExecute(Sender: TObject);
     procedure LayoutGroupTranslatorTMCheckBoxStateChanged(Sender: TObject);
     procedure EditGeminiAPIKeyPropertiesButtonClick(Sender: TObject; AButtonIndex: Integer);
     procedure EditGeminiAPIKeyPropertiesChange(Sender: TObject);
-    procedure ButtonGeminiDetectModelsClick(Sender: TObject);
-    procedure ButtonGeminiTestClick(Sender: TObject);
+    procedure ActionGeminiDetectModelsExecute(Sender: TObject);
+    procedure ActionGeminiTestExecute(Sender: TObject);
+    procedure ActionGeminiHasKeyUpdate(Sender: TObject);
   private
     FSpellCheckerAutoCorrectOptions: TdxSpellCheckerAutoCorrectOptions;
     FRestartRequired: boolean;
@@ -515,6 +516,7 @@ type
     function ITranslationProviderSettingsOllama.GetModelName = GetOllamaModelName;
     function ITranslationProviderSettingsOllama.GetTimeout = GetOllamaTimeout;
 
+  private
     // ITranslationProviderSettingsGemini
     function GetGeminiAPIKey: string;
     function GetGeminiModelName: string;
@@ -1968,7 +1970,7 @@ begin
   EditGeminiAPIKey.Properties.Buttons[0].ImageIndex := 0;
 end;
 
-procedure TFormSettings.ButtonGeminiDetectModelsClick(Sender: TObject);
+procedure TFormSettings.ActionGeminiDetectModelsExecute(Sender: TObject);
 begin
   if GetGeminiAPIKey.Trim.IsEmpty then
   begin
@@ -1998,7 +2000,12 @@ begin
   end;
 end;
 
-procedure TFormSettings.ButtonGeminiTestClick(Sender: TObject);
+procedure TFormSettings.ActionGeminiHasKeyUpdate(Sender: TObject);
+begin
+  TAction(Sender).Enabled := not GetGeminiAPIKey.Trim.IsEmpty;
+end;
+
+procedure TFormSettings.ActionGeminiTestExecute(Sender: TObject);
 begin
   if GetGeminiAPIKey.Trim.IsEmpty then
   begin
@@ -2057,7 +2064,7 @@ begin
   EditOllamaBaseURL.Properties.Buttons[0].ImageIndex := 0;
 end;
 
-procedure TFormSettings.ButtonOllamaDetectModelsClick(Sender: TObject);
+procedure TFormSettings.ActionOllamaDetectModelsExecute(Sender: TObject);
 begin
   if GetOllamaBaseURL.Trim.IsEmpty then
   begin
@@ -2087,7 +2094,7 @@ begin
   end;
 end;
 
-procedure TFormSettings.ButtonOllamaTestClick(Sender: TObject);
+procedure TFormSettings.ActionOllamaTestExecute(Sender: TObject);
 begin
   if GetOllamaBaseURL.Trim.IsEmpty then
   begin

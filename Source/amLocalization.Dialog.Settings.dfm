@@ -136,18 +136,16 @@ inherited FormSettings: TFormSettings
       Top = 306
       Width = 120
       Height = 25
-      Caption = 'Detect Models'
+      Action = ActionOllamaDetectModels
       TabOrder = 38
-      OnClick = ButtonOllamaDetectModelsClick
     end
     object ButtonOllamaTest: TcxButton [5]
       Left = 461
       Top = 306
       Width = 120
       Height = 25
-      Caption = 'Test'
+      Action = ActionOllamaTest
       TabOrder = 39
-      OnClick = ButtonOllamaTestClick
     end
     object EditGeminiAPIKey: TcxButtonEdit [6]
       Left = 181
@@ -212,18 +210,16 @@ inherited FormSettings: TFormSettings
       Top = 475
       Width = 120
       Height = 25
-      Caption = 'Detect Models'
+      Action = ActionGeminiDetectModels
       TabOrder = 44
-      OnClick = ButtonGeminiDetectModelsClick
     end
     object ButtonGeminiTest: TcxButton [11]
       Left = 461
       Top = 475
       Width = 120
       Height = 25
-      Caption = 'Test'
+      Action = ActionGeminiTest
       TabOrder = 45
-      OnClick = ButtonGeminiTestClick
     end
     object CheckBoxEditUseProposed: TcxCheckBox [12]
       Left = 10000
@@ -3120,22 +3116,24 @@ inherited FormSettings: TFormSettings
     object ActionOllamaDetectModels: TAction
       Category = 'Providers'
       Caption = 'Detect Models'
-      OnExecute = ButtonOllamaDetectModelsClick
+      OnExecute = ActionOllamaDetectModelsExecute
     end
     object ActionOllamaTest: TAction
       Category = 'Providers'
-      Caption = 'Test Connection'
-      OnExecute = ButtonOllamaTestClick
+      Caption = 'Test setup'
+      OnExecute = ActionOllamaTestExecute
     end
     object ActionGeminiDetectModels: TAction
       Category = 'Providers'
       Caption = 'Detect Models'
-      OnExecute = ButtonGeminiDetectModelsClick
+      OnExecute = ActionGeminiDetectModelsExecute
+      OnUpdate = ActionGeminiHasKeyUpdate
     end
     object ActionGeminiTest: TAction
       Category = 'Providers'
-      Caption = 'Test Connection'
-      OnExecute = ButtonGeminiTestClick
+      Caption = 'Test setup'
+      OnExecute = ActionGeminiTestExecute
+      OnUpdate = ActionGeminiHasKeyUpdate
     end
   end
   object PopupMenuFolderReset: TPopupMenu
