@@ -149,6 +149,7 @@
         <RcCompile Include="resources\EmptyResourceModule.rc">
             <Form>EmptyResourceModule.res</Form>
         </RcCompile>
+        <DCCReference Include="amTranslationManager.dxSettings.pas"/>
         <DCCReference Include="amLocalization.ExceptionHandler.API.pas"/>
         <DCCReference Include="amLocalization.Dialog.pas">
             <Form>FormDialog</Form>
@@ -230,7 +231,6 @@
         </DCCReference>
         <DCCReference Include="amLocalization.Dialog.StopList.pas">
             <Form>FormStopList</Form>
-            <FormType>dfm</FormType>
         </DCCReference>
         <DCCReference Include="amLocalization.StopList.pas"/>
         <DCCReference Include="amLocalization.TranslationMemory.pas"/>
@@ -246,7 +246,6 @@
         <DCCReference Include="amLocalization.Data.ModuleItemsDataSource.pas"/>
         <DCCReference Include="amLocalization.Dialog.Import.CSV.pas">
             <Form>FormCSVImport</Form>
-            <FormType>dfm</FormType>
         </DCCReference>
         <DCCReference Include="amLocalization.Common.pas"/>
         <DCCReference Include="amLocalization.ExceptionHandler.Prompt.pas"/>
@@ -259,7 +258,6 @@
         <DCCReference Include="amLocalization.Utils.AutoGroupByBox.pas"/>
         <DCCReference Include="amLocalization.Dialog.ApplySameTranslation.pas">
             <Form>FormApplySameTranslation</Form>
-            <FormType>dfm</FormType>
         </DCCReference>
         <None Include="..\Bin\Win32\Debug\amTranslationManager.xlat"/>
         <BuildConfiguration Include="Base">

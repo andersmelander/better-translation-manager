@@ -24,7 +24,7 @@ object FormMain: TFormMain
     BarManager = BarManager
     Style = rs2016
     ColorSchemeAccent = rcsaBlue
-    ColorSchemeName = 'TheBezier'
+    ColorSchemeName = 'Basic'
     PopupMenuItems = []
     QuickAccessToolbar.Toolbar = BarManagerBarQuickAccess
     SupportNonClientDrawing = True
@@ -137,7 +137,6 @@ object FormMain: TFormMain
       end>
     Ribbon = RibbonMain
     OnHint = StatusBarHint
-    ParentFont = True
     OnMouseDown = StatusBarMouseDown
     OnMouseMove = StatusBarMouseMove
   end
@@ -165,7 +164,6 @@ object FormMain: TFormMain
           Options.OnlyOwnColumns = True
         end>
       Images = DataModuleMain.ImageListTree
-      Navigator.Buttons.CustomButtons = <>
       OptionsBehavior.CellHints = True
       OptionsBehavior.ImmediateEditor = False
       OptionsBehavior.ExpandOnDblClick = False
@@ -331,7 +329,6 @@ object FormMain: TFormMain
         OnMouseDown = GridItemsTableViewMouseDown
         OnMouseMove = GridItemsTableViewMouseMove
         OnMouseUp = GridItemsTableViewMouseUp
-        Navigator.Buttons.CustomButtons = <>
         ScrollbarAnnotations.CustomAnnotations = <
           item
             Alignment = saaClient
@@ -361,9 +358,6 @@ object FormMain: TFormMain
         OnPopulateCustomScrollbarAnnotationRowIndexList = GridItemsTableViewPopulateCustomScrollbarAnnotationRowIndexList
         OnInitEdit = GridItemsTableViewInitEdit
         DataController.Options = [dcoAnsiSort, dcoCaseInsensitive, dcoAssignGroupingValues, dcoAssignMasterDetailKeys, dcoSaveExpanding]
-        DataController.Summary.DefaultGroupSummaryItems = <>
-        DataController.Summary.FooterSummaryItems = <>
-        DataController.Summary.SummaryGroups = <>
         DataController.OnCompare = GridItemsTableViewDataControllerCompare
         DataController.OnRecordChanged = GridItemsTableViewDataControllerRecordChanged
         OptionsBehavior.CellHints = True
@@ -893,7 +887,6 @@ object FormMain: TFormMain
     MenusShowRecentItemsFirst = False
     PopupMenuLinks = <>
     ShowShortCutInHint = True
-    Style = bmsUseLookAndFeel
     UseSystemFont = True
     Left = 428
     Top = 16

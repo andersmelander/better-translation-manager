@@ -106,7 +106,7 @@ inherited FormSettings: TFormSettings
       Style.HotTrack = False
       Style.TransparentBorder = False
       TabOrder = 35
-      Width = 400
+      Width = 371
     end
     object ComboBoxOllamaModel: TcxComboBox [2]
       Left = 181
@@ -114,7 +114,7 @@ inherited FormSettings: TFormSettings
       Style.HotTrack = False
       Style.TransparentBorder = False
       TabOrder = 36
-      Width = 400
+      Width = 371
     end
     object EditOllamaTimeout: TcxSpinEdit [3]
       Left = 181
@@ -132,7 +132,7 @@ inherited FormSettings: TFormSettings
       Width = 100
     end
     object ButtonOllamaDetectModels: TcxButton [4]
-      Left = 334
+      Left = 305
       Top = 306
       Width = 120
       Height = 25
@@ -140,7 +140,7 @@ inherited FormSettings: TFormSettings
       TabOrder = 38
     end
     object ButtonOllamaTest: TcxButton [5]
-      Left = 461
+      Left = 432
       Top = 306
       Width = 120
       Height = 25
@@ -149,7 +149,7 @@ inherited FormSettings: TFormSettings
     end
     object EditGeminiAPIKey: TcxButtonEdit [6]
       Left = 181
-      Top = 350
+      Top = 391
       Properties.Buttons = <
         item
           ImageIndex = 0
@@ -162,19 +162,19 @@ inherited FormSettings: TFormSettings
       Style.HotTrack = False
       Style.TransparentBorder = False
       TabOrder = 40
-      Width = 400
+      Width = 371
     end
     object ComboBoxGeminiModel: TcxComboBox [7]
       Left = 181
-      Top = 378
+      Top = 419
       Style.HotTrack = False
       Style.TransparentBorder = False
       TabOrder = 41
-      Width = 400
+      Width = 371
     end
     object EditGeminiTemperature: TcxSpinEdit [8]
       Left = 181
-      Top = 406
+      Top = 447
       Properties.Alignment.Horz = taRightJustify
       Properties.AssignedValues.MinValue = True
       Properties.DisplayFormat = '0.0'
@@ -192,7 +192,7 @@ inherited FormSettings: TFormSettings
     end
     object EditGeminiTimeout: TcxSpinEdit [9]
       Left = 181
-      Top = 434
+      Top = 475
       Properties.Alignment.Horz = taRightJustify
       Properties.DisplayFormat = ',##0 ms'
       Properties.EditFormat = '0'
@@ -206,20 +206,20 @@ inherited FormSettings: TFormSettings
       Width = 100
     end
     object ButtonGeminiDetectModels: TcxButton [10]
-      Left = 334
-      Top = 475
+      Left = 305
+      Top = 544
       Width = 120
       Height = 25
       Action = ActionGeminiDetectModels
-      TabOrder = 44
+      TabOrder = 45
     end
     object ButtonGeminiTest: TcxButton [11]
-      Left = 461
-      Top = 475
+      Left = 432
+      Top = 544
       Width = 120
       Height = 25
       Action = ActionGeminiTest
-      TabOrder = 45
+      TabOrder = 46
     end
     object CheckBoxEditUseProposed: TcxCheckBox [12]
       Left = 10000
@@ -461,13 +461,8 @@ inherited FormSettings: TFormSettings
       TabOrder = 21
       Visible = False
       object GridColorsTableView: TcxGridTableView
-        Navigator.Buttons.CustomButtons = <>
-        ScrollbarAnnotations.CustomAnnotations = <>
         OnInitEdit = GridColorsTableViewInitEdit
         DataController.Options = [dcoAssignGroupingValues, dcoAssignMasterDetailKeys, dcoSaveExpanding, dcoImmediatePost]
-        DataController.Summary.DefaultGroupSummaryItems = <>
-        DataController.Summary.FooterSummaryItems = <>
-        DataController.Summary.SummaryGroups = <>
         DataController.OnAfterPost = GridColorsTableViewDataControllerAfterPost
         OptionsCustomize.ColumnFiltering = False
         OptionsCustomize.ColumnGrouping = False
@@ -751,7 +746,7 @@ inherited FormSettings: TFormSettings
       Properties.ValidationOptions = [evoAllowLoseFocus]
       Style.HotTrack = False
       Style.TransparentBorder = False
-      TabOrder = 46
+      TabOrder = 47
       Text = 'Treat each line as an individual property'
       Visible = False
       Width = 442
@@ -762,14 +757,9 @@ inherited FormSettings: TFormSettings
       Width = 533
       Height = 200
       Enabled = False
-      TabOrder = 47
+      TabOrder = 48
       Visible = False
       object GridSynthesizeTableView: TcxGridTableView
-        Navigator.Buttons.CustomButtons = <>
-        ScrollbarAnnotations.CustomAnnotations = <>
-        DataController.Summary.DefaultGroupSummaryItems = <>
-        DataController.Summary.FooterSummaryItems = <>
-        DataController.Summary.SummaryGroups = <>
         DataController.OnBeforePost = GridSynthesizeTableViewDataControllerBeforePost
         OptionsBehavior.CellHints = True
         OptionsBehavior.FocusFirstCellOnNewRecord = True
@@ -815,16 +805,11 @@ inherited FormSettings: TFormSettings
       Top = 10000
       Width = 531
       Height = 128
-      TabOrder = 48
+      TabOrder = 49
       Visible = False
       object GridFoldersTableView: TcxGridTableView
-        Navigator.Buttons.CustomButtons = <>
-        ScrollbarAnnotations.CustomAnnotations = <>
         OnCellDblClick = GridFoldersTableViewCellDblClick
         OnEditing = GridFoldersTableViewEditing
-        DataController.Summary.DefaultGroupSummaryItems = <>
-        DataController.Summary.FooterSummaryItems = <>
-        DataController.Summary.SummaryGroups = <>
         OptionsBehavior.CellHints = True
         OptionsCustomize.ColumnFiltering = False
         OptionsCustomize.ColumnGrouping = False
@@ -921,7 +906,7 @@ inherited FormSettings: TFormSettings
       Anchors = [akTop, akRight]
       DropDownMenu = PopupMenuFolderReset
       Kind = cxbkDropDownButton
-      TabOrder = 50
+      TabOrder = 51
       Visible = False
     end
     object ButtonFilesModify: TcxButton [46]
@@ -931,7 +916,7 @@ inherited FormSettings: TFormSettings
       Height = 23
       Action = ActionFoldersModify
       Anchors = [akTop, akRight]
-      TabOrder = 49
+      TabOrder = 50
       Visible = False
     end
     object CheckBoxAutoRecovery: TcxCheckBox [47]
@@ -940,7 +925,7 @@ inherited FormSettings: TFormSettings
       Caption = 'Save auto-recovery information'
       Style.HotTrack = False
       Style.TransparentBorder = False
-      TabOrder = 55
+      TabOrder = 56
       Transparent = True
       Visible = False
     end
@@ -953,7 +938,7 @@ inherited FormSettings: TFormSettings
       Properties.UseLeftAlignmentOnEditing = False
       Properties.ValidationOptions = [evoShowErrorIcon]
       Style.HotTrack = False
-      TabOrder = 56
+      TabOrder = 57
       Value = 1
       Visible = False
       Width = 53
@@ -964,7 +949,7 @@ inherited FormSettings: TFormSettings
       Caption = 'Save extra backup files'
       Style.HotTrack = False
       Style.TransparentBorder = False
-      TabOrder = 58
+      TabOrder = 59
       Transparent = True
       Visible = False
     end
@@ -977,7 +962,7 @@ inherited FormSettings: TFormSettings
       Properties.UseLeftAlignmentOnEditing = False
       Properties.ValidationOptions = [evoShowErrorIcon]
       Style.HotTrack = False
-      TabOrder = 59
+      TabOrder = 60
       Value = 1
       Visible = False
       Width = 53
@@ -993,7 +978,7 @@ inherited FormSettings: TFormSettings
       Properties.UseLeftAlignmentOnEditing = False
       Properties.ValidationOptions = [evoShowErrorIcon]
       Style.HotTrack = False
-      TabOrder = 60
+      TabOrder = 61
       Value = 100
       Visible = False
       Width = 78
@@ -1007,7 +992,7 @@ inherited FormSettings: TFormSettings
       Caption = 'Create backup of saved files'
       Style.HotTrack = False
       Style.TransparentBorder = False
-      TabOrder = 57
+      TabOrder = 58
       Transparent = True
       Visible = False
     end
@@ -1022,7 +1007,7 @@ inherited FormSettings: TFormSettings
       Caption = 'Omit "Don'#39't translate" items when saving'
       Style.HotTrack = False
       Style.TransparentBorder = False
-      TabOrder = 51
+      TabOrder = 52
       Transparent = True
       Visible = False
     end
@@ -1035,7 +1020,7 @@ inherited FormSettings: TFormSettings
       Caption = 'Save items sorted'
       Style.HotTrack = False
       Style.TransparentBorder = False
-      TabOrder = 54
+      TabOrder = 55
       Transparent = True
       Visible = False
     end
@@ -1049,7 +1034,7 @@ inherited FormSettings: TFormSettings
       Caption = 'Save "New" state'
       Style.HotTrack = False
       Style.TransparentBorder = False
-      TabOrder = 52
+      TabOrder = 53
       Transparent = True
       Visible = False
     end
@@ -1059,7 +1044,7 @@ inherited FormSettings: TFormSettings
       Caption = 'Ignore words with numbers'
       Style.HotTrack = False
       Style.TransparentBorder = False
-      TabOrder = 65
+      TabOrder = 66
       Transparent = True
       Visible = False
     end
@@ -1069,7 +1054,7 @@ inherited FormSettings: TFormSettings
       Caption = 'Ignore repeated words'
       Style.HotTrack = False
       Style.TransparentBorder = False
-      TabOrder = 64
+      TabOrder = 65
       Transparent = True
       Visible = False
     end
@@ -1078,7 +1063,7 @@ inherited FormSettings: TFormSettings
       Top = 10000
       Properties.Items = <>
       Style.HotTrack = False
-      TabOrder = 66
+      TabOrder = 67
       Visible = False
       Width = 217
     end
@@ -1089,7 +1074,7 @@ inherited FormSettings: TFormSettings
       Height = 23
       Anchors = [akTop, akRight]
       Caption = 'Edit user dictionary...'
-      TabOrder = 67
+      TabOrder = 68
       Visible = False
       OnClick = ButtonProofingEditCustomDictionaryClick
     end
@@ -1099,7 +1084,7 @@ inherited FormSettings: TFormSettings
       Caption = 'Check spelling as you type'
       Style.HotTrack = False
       Style.TransparentBorder = False
-      TabOrder = 61
+      TabOrder = 62
       Transparent = True
       Visible = False
     end
@@ -1109,7 +1094,7 @@ inherited FormSettings: TFormSettings
       Caption = 'Ignore words in UPPERCASE'
       Style.HotTrack = False
       Style.TransparentBorder = False
-      TabOrder = 62
+      TabOrder = 63
       Transparent = True
       Visible = False
     end
@@ -1119,7 +1104,7 @@ inherited FormSettings: TFormSettings
       Caption = 'Ignore words in MIXed caSE'
       Style.HotTrack = False
       Style.TransparentBorder = False
-      TabOrder = 63
+      TabOrder = 64
       Transparent = True
       Visible = False
     end
@@ -1130,7 +1115,7 @@ inherited FormSettings: TFormSettings
       Enabled = False
       Style.HotTrack = False
       Style.TransparentBorder = False
-      TabOrder = 69
+      TabOrder = 70
       Transparent = True
       Visible = False
     end
@@ -1141,7 +1126,7 @@ inherited FormSettings: TFormSettings
       Enabled = False
       Style.HotTrack = False
       Style.TransparentBorder = False
-      TabOrder = 72
+      TabOrder = 73
       Transparent = True
       Visible = False
     end
@@ -1152,7 +1137,7 @@ inherited FormSettings: TFormSettings
       Enabled = False
       Style.HotTrack = False
       Style.TransparentBorder = False
-      TabOrder = 73
+      TabOrder = 74
       Transparent = True
       Visible = False
     end
@@ -1163,7 +1148,7 @@ inherited FormSettings: TFormSettings
       Enabled = False
       Style.HotTrack = False
       Style.TransparentBorder = False
-      TabOrder = 74
+      TabOrder = 75
       Transparent = True
       Visible = False
     end
@@ -1190,7 +1175,7 @@ inherited FormSettings: TFormSettings
       ShowColumnHeaders = False
       SortType = stText
       Style.TransparentBorder = False
-      TabOrder = 77
+      TabOrder = 78
       ViewStyle = vsReport
       Visible = False
       OnClick = ListViewProofingAutoCorrectReplacementsClick
@@ -1203,7 +1188,7 @@ inherited FormSettings: TFormSettings
       Action = ActionProofingAdd
       Anchors = [akRight, akBottom]
       Enabled = False
-      TabOrder = 78
+      TabOrder = 79
       Visible = False
     end
     object ButtonProofingAutoCorrectDelete: TcxButton [69]
@@ -1214,7 +1199,7 @@ inherited FormSettings: TFormSettings
       Action = ActionProofingDelete
       Anchors = [akRight, akBottom]
       Enabled = False
-      TabOrder = 79
+      TabOrder = 80
       Visible = False
     end
     object CheckBoxProofingCorrectAutomaticallyUseSuggestions: TcxCheckBox [70]
@@ -1224,7 +1209,7 @@ inherited FormSettings: TFormSettings
       Enabled = False
       Style.HotTrack = False
       Style.TransparentBorder = False
-      TabOrder = 80
+      TabOrder = 81
       Transparent = True
       Visible = False
     end
@@ -1235,7 +1220,7 @@ inherited FormSettings: TFormSettings
       Properties.OnChange = EditProofingAutoCorrectReplacementFromPropertiesChange
       Style.HotTrack = False
       Style.TransparentBorder = False
-      TabOrder = 75
+      TabOrder = 76
       Visible = False
       Width = 162
     end
@@ -1246,7 +1231,7 @@ inherited FormSettings: TFormSettings
       Enabled = False
       Style.HotTrack = False
       Style.TransparentBorder = False
-      TabOrder = 76
+      TabOrder = 77
       Visible = False
       Width = 228
     end
@@ -1257,7 +1242,7 @@ inherited FormSettings: TFormSettings
       Properties.OnChange = CheckBoxProofingAutoCorrectPropertiesChange
       Style.HotTrack = False
       Style.TransparentBorder = False
-      TabOrder = 68
+      TabOrder = 69
       Transparent = True
       Visible = False
     end
@@ -1268,7 +1253,7 @@ inherited FormSettings: TFormSettings
       Height = 23
       Caption = 'Exceptions...'
       Enabled = False
-      TabOrder = 71
+      TabOrder = 72
       Visible = False
       OnClick = ButtonProofingAutoCorrectExceptionsClick
     end
@@ -1279,7 +1264,7 @@ inherited FormSettings: TFormSettings
       Enabled = False
       Style.HotTrack = False
       Style.TransparentBorder = False
-      TabOrder = 70
+      TabOrder = 71
       Transparent = True
       Visible = False
     end
@@ -1299,7 +1284,7 @@ inherited FormSettings: TFormSettings
       Style.Color = 4206115
       Properties.ShowAccelChar = False
       Properties.WordWrap = True
-      TabOrder = 84
+      TabOrder = 85
       Transparent = True
       Visible = False
       Width = 536
@@ -1311,7 +1296,7 @@ inherited FormSettings: TFormSettings
       Properties.OnChange = CheckBoxSingleInstancePropertiesChange
       Style.HotTrack = False
       Style.TransparentBorder = False
-      TabOrder = 81
+      TabOrder = 82
       Transparent = True
       Visible = False
     end
@@ -1321,7 +1306,7 @@ inherited FormSettings: TFormSettings
       Width = 318
       Height = 23
       Caption = 'Restore Translation Manager file associations'
-      TabOrder = 83
+      TabOrder = 84
       Visible = False
       OnClick = ButtonRegisterFiletypesClick
     end
@@ -1336,7 +1321,7 @@ inherited FormSettings: TFormSettings
       Caption = 'Check for updates every time the application starts'
       Style.HotTrack = False
       Style.TransparentBorder = False
-      TabOrder = 85
+      TabOrder = 86
       Transparent = True
       Visible = False
     end
@@ -1346,7 +1331,7 @@ inherited FormSettings: TFormSettings
       Width = 197
       Height = 23
       Caption = 'Check for updates now'
-      TabOrder = 87
+      TabOrder = 88
       Visible = False
     end
     object ButtonAutoUpdateReset: TcxButton [81]
@@ -1355,7 +1340,7 @@ inherited FormSettings: TFormSettings
       Width = 197
       Height = 23
       Caption = 'Reset declined updates'
-      TabOrder = 86
+      TabOrder = 87
       Visible = False
     end
     object CheckBoxPortable: TcxCheckBox [82]
@@ -1368,7 +1353,7 @@ inherited FormSettings: TFormSettings
       Properties.OnChange = CheckBoxSingleInstancePropertiesChange
       Style.HotTrack = False
       Style.TransparentBorder = False
-      TabOrder = 82
+      TabOrder = 83
       Transparent = True
       Visible = False
       OnClick = CheckBoxPortableClick
@@ -1567,13 +1552,13 @@ inherited FormSettings: TFormSettings
       Caption = 'Save statistics and other transient values'
       Style.HotTrack = False
       Style.TransparentBorder = False
-      TabOrder = 53
+      TabOrder = 54
       Transparent = True
       Visible = False
     end
     object EditGeminiRateLimit: TcxSpinEdit [89]
       Left = 181
-      Top = 442
+      Top = 503
       Hint = 
         'Requests Per Minute'#13#10'The value is tied to the Gemini project ass' +
         'ociated with the specified API key.'#13#10'The actual rate limit that ' +

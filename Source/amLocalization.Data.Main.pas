@@ -753,7 +753,8 @@ begin
     SkinPaletteName := DefaultSkinPaletteNames[DefaultColorTheme];
   end;
 
-  SkinController.BeginUpdate;
+  // With DevExpress 25.2.x It has become impossible to change the skin properties inside BeginUpdate..EndUpdate
+  // SkinController.BeginUpdate;
   try
     SkinController.SkinName := SkinName;
     SkinController.UseSkins := (SkinName <> ''); // Causes splash to flicker if skinned
@@ -766,7 +767,7 @@ begin
       SkinController.UseImageSet := imsAlternate;
 
   finally
-    SkinController.EndUpdate;
+    // SkinController.EndUpdate;
   end;
 end;
 

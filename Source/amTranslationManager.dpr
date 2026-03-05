@@ -30,6 +30,7 @@ uses
   {$ifdef MADEXCEPT}
   amLocalization.ExceptionHandler.MadExcept,
   {$endif MADEXCEPT}
+  amTranslationManager.dxSettings in 'amTranslationManager.dxSettings.pas',
   amLocalization.ExceptionHandler.API in 'amLocalization.ExceptionHandler.API.pas',
   amLocalization.Dialog in 'amLocalization.Dialog.pas' {FormDialog},
   amLocalization.Dialog.Main in 'amLocalization.Dialog.Main.pas' {FormMain},

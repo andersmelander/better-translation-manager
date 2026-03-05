@@ -1717,7 +1717,7 @@ var
 begin
   Replacement := FSpellCheckerAutoCorrectOptions.Replacements.FindReplacement(EditProofingAutoCorrectReplacementFrom.Text);
   ASSERT(Replacement <> nil);
-  FSpellCheckerAutoCorrectOptions.Replacements.Remove(Replacement);
+  FSpellCheckerAutoCorrectOptions.Replacements.Remove(Replacement.Text);
 
   ListViewProofingAutoCorrectReplacements.Items.BeginUpdate;
   try
