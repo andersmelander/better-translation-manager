@@ -159,9 +159,11 @@ type
     FMapMode: TMapMode;
     FTranslationCount: TTranslationCounts;
     FUpdateExisting: boolean;
+    FLockChanged: integer;
   private
     procedure LoadEncodings;
 
+    function LanguageID(Language: TLanguageItem): string;
     function GetCodepage: integer;
     procedure SetCodepage(const Value: integer);
     function GetFilename: string;
@@ -176,6 +178,7 @@ type
     procedure UnmapColumns(Kind: TColumnMapKind);
     procedure DisplayColumnMapPopupMenu(Column: TcxCustomGridTableItem);
     procedure MsgPreviewLayout(var Msg: TMessage); message MSG_PREVIEW_LAYOUT;
+    procedure AutoDetectLayout;
     procedure InvalidatePreviewLayout;
     procedure ValidateLayout;
     procedure PreviewLayout;
@@ -227,6 +230,19 @@ uses
 resourcestring
   sErrorAccessDenied = 'File or folder is open or in use by another program. Please close the other program and try again';
   sClickToMap = 'Click to map';
+
+resourcestring
+  sColumnCaptionIgnore = 'Ignore';
+  sColumnCaptionModule = 'Module';
+  sColumnCaptionItem = 'Item';
+  sColumnCaptionProperty = 'Property';
+  sColumnCaptionSourceLanguage = 'Source: %s';
+  sColumnCaptionTargetLanguage = 'Target: %s';
+
+  sColumnCaptionRequired = '%s (required)';
+  sColumnCaptionOptional = '%s (recommended)';
+const
+  sColumnCaptions: array[cmMetaModule..cmMetaProperty] of PResStringRec = (@sColumnCaptionModule, @sColumnCaptionItem, @sColumnCaptionProperty);
 
 const
   sDelimiters: array[0..3] of Char = (';', #9, ',', ' ');
@@ -1074,24 +1090,6 @@ begin
 end;
 
 procedure TFormCSVImport.DisplayColumnMapPopupMenu(Column: TcxCustomGridTableItem);
-
-  function LanguageID(Language: TLanguageItem): string;
-  begin
-    Result := Format('%s %s', [Language.LocaleName, Language.LanguageName]);
-  end;
-
-resourcestring
-  sColumnCaptionIgnore = 'Ignore';
-  sColumnCaptionModule = 'Module';
-  sColumnCaptionItem = 'Item';
-  sColumnCaptionProperty = 'Property';
-  sColumnCaptionSourceLanguage = 'Source: %s';
-  sColumnCaptionTargetLanguage = 'Target: %s';
-
-  sColumnCaptionRequired = '%s (required)';
-  sColumnCaptionOptional = '%s (recommended)';
-const
-  sColumnCaptions: array[cmMetaModule..cmMetaProperty] of PResStringRec = (@sColumnCaptionModule, @sColumnCaptionItem, @sColumnCaptionProperty);
 begin
 //  PanelPreviewHint.Hide;
 
@@ -1228,8 +1226,10 @@ begin
   end else
   if (ANewPage = WizardControlPageLayout) then
   begin
-    ValidateLayout;
     PreviewLayout;
+    if (WizardControl.ActivePage = WizardControlPageFile) then
+      AutoDetectLayout;
+    ValidateLayout;
     WizardControl.Buttons.Next.Enabled := FHasValidLayout;
     WizardControl.InfoPanel.Visible := True;
   end else
@@ -1263,6 +1263,11 @@ begin
 end;
 
 // -----------------------------------------------------------------------------
+
+function TFormCSVImport.LanguageID(Language: TLanguageItem): string;
+begin
+  Result := Format('%s %s', [Language.LocaleName, Language.LanguageName]);
+end;
 
 function TFormCSVImport.GetCodepage: integer;
 begin
@@ -1327,7 +1332,8 @@ end;
 procedure TFormCSVImport.SpinEditFirstRowPropertiesEditValueChanged(Sender: TObject);
 begin
   FSettings.FirstRow := SpinEditFirstRow.Value;
-  InvalidatePreviewLayout;
+  if (FLockChanged = 0) then
+    InvalidatePreviewLayout;
 end;
 
 procedure TFormCSVImport.UnmapColumns(Kind: TColumnMapKind);
@@ -1338,6 +1344,64 @@ begin
       FColumnMap[i].Mapped := False;
       GridLayoutTableView.Columns[i].Caption := sClickToMap;
     end;
+end;
+
+procedure TFormCSVImport.AutoDetectLayout;
+var
+  HasHeader: boolean;
+
+  procedure FindHeaderField(const Name: string; Kind: TColumnMapKind; Language: TLanguageItem = nil);
+  begin
+    var Row := GridLayoutTableView.ViewData.Rows[0];
+
+    for var i := 0 to Row.ValueCount-1 do
+      if (SameText(Row.Values[i], Name)) then
+      begin
+        FColumnMap[i].Kind := Kind;
+        FColumnMap[i].Mapped := True;
+
+        case Kind of
+          cmNone:
+            GridLayoutTableView.Columns[i].Caption := sColumnCaptionIgnore;
+
+          cmMetaModule..cmMetaProperty:
+            GridLayoutTableView.Columns[i].Caption := LoadResString(sColumnCaptions[Kind]);
+
+          cmValueSource:
+            GridLayoutTableView.Columns[i].Caption := Format(sColumnCaptionSourceLanguage, [LanguageID(Language)]);
+
+          cmValueTarget:
+            GridLayoutTableView.Columns[i].Caption := Format(sColumnCaptionTargetLanguage, [LanguageID(Language)]);
+        end;
+
+        HasHeader := True;
+        break;
+      end;
+  end;
+
+begin
+  if (not FHasLayout) or (FHasValidLayout) then
+    exit;
+
+  if (GridLayoutTableView.ViewData.RowCount < 1) then
+    exit;
+
+  HasHeader := False;
+
+  FindHeaderField('Module', cmMetaModule);
+  FindHeaderField('Item', cmMetaItem);
+  FindHeaderField('ItemType', cmNone);
+  FindHeaderField('Property', cmMetaProperty);
+  FindHeaderField(FProject.SourceLanguage.LocaleName, cmValueSource, FProject.SourceLanguage);
+  for var TargetLanguage in FProject.TranslationLanguages do
+    FindHeaderField(TargetLanguage.Language.LocaleName, cmValueTarget, TargetLanguage.Language);
+
+  if HasHeader then
+  begin
+    Inc(FLockChanged);
+    SpinEditFirstRow.Value := 2;
+    Dec(FLockChanged);
+  end;
 end;
 
 procedure TFormCSVImport.ValidateLayout;
