@@ -93,8 +93,8 @@ resourcestring
 
   // Error messages
   sGeminiErrorNoAPIKey = 'Google Gemini API Key is missing';
-  sGeminiErrorInvalidAPIKey = 'Invalid Google Gemini API Key';
-  sGeminiErrorModelNotFound = 'Model "%s" not found or not available for your API key';
+  sGeminiErrorInvalidAPIKey = 'Invalid Google Gemini API Key: %d (%s)';
+  sGeminiErrorModelNotFound = 'Model "%s" not found or not available for your API key: %d (%s)';
   sGeminiErrorTimeout = 'Translation timeout after %d seconds';
   sGeminiErrorInvalidResponse = 'Invalid response from Google Gemini API';
   sGeminiErrorServerError = 'Google Gemini API error: %s';
@@ -187,12 +187,12 @@ begin
             if (ErrorObj <> nil) then
               AErrorMessage := ErrorObj.GetValue<string>('message')
             else
-              AErrorMessage := HTTPResponse.StatusText;
+              AErrorMessage := Format('%d (%s)', [HTTPResponse.StatusCode, HTTPResponse.StatusText]);
           finally
             JSONResponse.Free;
           end;
         end else
-          AErrorMessage := HTTPResponse.StatusText;
+          AErrorMessage := Format('%d (%s)', [HTTPResponse.StatusCode, HTTPResponse.StatusText]);
         Exit;
       end;
 
@@ -330,7 +330,7 @@ begin
       if (HTTPResponse.StatusCode = 200) then
         Result := True
       else
-        AErrorMessage := sGeminiErrorInvalidAPIKey;
+        AErrorMessage := Format(sGeminiErrorInvalidAPIKey, [HTTPResponse.StatusCode, HTTPResponse.StatusText]);
 
     except
       on E: Exception do
@@ -370,7 +370,7 @@ begin
       if (HTTPResponse.StatusCode = 200) then
         Result := True
       else
-        AErrorMessage := Format(sGeminiErrorModelNotFound, [ModelName]);
+        AErrorMessage := Format(sGeminiErrorModelNotFound, [ModelName, HTTPResponse.StatusCode, HTTPResponse.StatusText]);
 
     except
       on E: Exception do
