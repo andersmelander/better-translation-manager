@@ -143,7 +143,7 @@ end;
 
 function TTranslationProviderGemini.GetEnabled: boolean;
 begin
-  Result := TranslationManagerSettings.Providers.Ollama.Enabled;
+  Result := TranslationManagerSettings.Providers.Gemini.Enabled;
 end;
 
 function TTranslationProviderGemini.GetModelName: string;
