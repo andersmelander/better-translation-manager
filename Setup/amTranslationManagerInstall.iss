@@ -51,7 +51,12 @@ Source: "Files\portable"; DestDir: "{app}"; Check: IsPortable
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 Source: ".\Files\Dictionaries\*.*"; DestDir: "{app}\Dictionaries"; Components: spellcheck
 Source: ".\Files\Translation Memory\TranslationMemory.dat"; DestDir: "{userappdata}\TranslationManager\"; Flags: confirmoverwrite; Components: tm; Check: not IsPortable
-Source: ".\Files\Examples\*.*"; DestDir: "{userdocs}\Translation Examples\"; Flags: recursesubdirs createallsubdirs; Components: examples; Check: not IsPortable
+Source: "..\Examples\HelloWorld\HelloWorld.dpr"; DestDir: "{userdocs}\Translation Examples\HelloWorld\"; Flags: createallsubdirs recursesubdirs; Components: examples; Check: not IsPortable
+Source: "..\Examples\HelloWorld\HelloWorld.dproj"; DestDir: "{userdocs}\Translation Examples\HelloWorld\"; Components: examples; Check: not IsPortable
+Source: "..\Examples\HelloWorld\HelloWorld.xlat"; DestDir: "{userdocs}\Translation Examples\HelloWorld\"; Components: examples; Check: not IsPortable
+Source: "..\Examples\HelloWorld\Main.pas"; DestDir: "{userdocs}\Translation Examples\HelloWorld\"; Components: examples; Check: not IsPortable
+Source: "..\Examples\HelloWorld\Main.dfm"; DestDir: "{userdocs}\Translation Examples\HelloWorld\"; Components: examples; Check: not IsPortable
+Source: "..\Examples\HelloWorld\readme.txt"; DestDir: "{userdocs}\Translation Examples\HelloWorld\"; Components: examples; Check: not IsPortable
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Check: not IsPortable
