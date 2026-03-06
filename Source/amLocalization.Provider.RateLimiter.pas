@@ -107,7 +107,7 @@ begin
     // Remove requests older than 60 seconds
     DeleteOldRequestsSince(Now);
 
-    if (FRequestTimes.Count >= FMaxRPM) then
+    if (FMaxRPM > 0) and (FRequestTimes.Count >= FMaxRPM) then
     begin
       // We have exceeded max RPM; Wait for "time since oldest request" and "a bit"
       var SleepTime := 60000 - (Now - FRequestTimes[0]) + 100;

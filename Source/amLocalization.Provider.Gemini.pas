@@ -29,7 +29,7 @@ uses
 type
   TTranslationProviderGemini = class(TInterfacedObject, ITranslationProvider, ITranslationProviderGemini)
   private const
-    sBaseURL = 'https://generativelanguage.googleapis.com/v1beta';
+    sBaseURL = 'https://generativelanguage.googleapis.com/v1';
   private
     FSettings: ITranslationProviderSettingsGemini;
     FRateLimiter: IRateLimiter;
@@ -93,8 +93,8 @@ resourcestring
 
   // Error messages
   sGeminiErrorNoAPIKey = 'Google Gemini API Key is missing';
-  sGeminiErrorInvalidAPIKey = 'Invalid Google Gemini API Key';
-  sGeminiErrorModelNotFound = 'Model "%s" not found or not available for your API key';
+  sGeminiErrorInvalidAPIKey = 'Invalid Google Gemini API Key: %d (%s)';
+  sGeminiErrorModelNotFound = 'Model "%s" not found or not available for your API key: %d (%s)';
   sGeminiErrorTimeout = 'Translation timeout after %d seconds';
   sGeminiErrorInvalidResponse = 'Invalid response from Google Gemini API';
   sGeminiErrorServerError = 'Google Gemini API error: %s';
@@ -143,7 +143,7 @@ end;
 
 function TTranslationProviderGemini.GetEnabled: boolean;
 begin
-  Result := TranslationManagerSettings.Providers.Ollama.Enabled;
+  Result := TranslationManagerSettings.Providers.Gemini.Enabled;
 end;
 
 function TTranslationProviderGemini.GetModelName: string;
@@ -172,7 +172,7 @@ begin
     HTTPClient.ConnectionTimeout := Timeout;
     HTTPClient.ResponseTimeout := Timeout;
 
-    var URL := Format('%s/%s?key=%s', [sBaseURL, '/models', APIKey]);
+    var URL := Format('%s/%s?key=%s', [sBaseURL, 'models', APIKey]);
 
     try
       var HTTPResponse := HTTPClient.Get(URL);
@@ -187,12 +187,12 @@ begin
             if (ErrorObj <> nil) then
               AErrorMessage := ErrorObj.GetValue<string>('message')
             else
-              AErrorMessage := HTTPResponse.StatusText;
+              AErrorMessage := Format('%d (%s)', [HTTPResponse.StatusCode, HTTPResponse.StatusText]);
           finally
             JSONResponse.Free;
           end;
         end else
-          AErrorMessage := HTTPResponse.StatusText;
+          AErrorMessage := Format('%d (%s)', [HTTPResponse.StatusCode, HTTPResponse.StatusText]);
         Exit;
       end;
 
@@ -294,7 +294,7 @@ begin
   Result := ARawResponse.Trim;
 
   // Remove common prefixes if any (Gemini usually follows instructions well)
-  Result := TRegEx.Replace(Result, '^(Translation:|Translated text:|Result:|The translation is:)', '', [roIgnoreCase]);
+  Result := TRegEx.Replace(Result, '^(Translation:|Translated text:|Result:|The translation is:)\s*', '', [roIgnoreCase]);
 
   // Trim again
   Result := Result.Trim;
@@ -322,7 +322,7 @@ begin
     HTTPClient.ResponseTimeout := 5000;
 
     // Use a simple API call to validate the key
-    var URL := Format('%s/%s?key=%s', [sBaseURL, '/models', AAPIKey]);
+    var URL := Format('%s/%s?key=%s', [sBaseURL, 'models', AAPIKey]);
 
     try
       var HTTPResponse := HTTPClient.Get(URL);
@@ -330,7 +330,7 @@ begin
       if (HTTPResponse.StatusCode = 200) then
         Result := True
       else
-        AErrorMessage := sGeminiErrorInvalidAPIKey;
+        AErrorMessage := Format(sGeminiErrorInvalidAPIKey, [HTTPResponse.StatusCode, HTTPResponse.StatusText]);
 
     except
       on E: Exception do
@@ -370,7 +370,7 @@ begin
       if (HTTPResponse.StatusCode = 200) then
         Result := True
       else
-        AErrorMessage := Format(sGeminiErrorModelNotFound, [ModelName]);
+        AErrorMessage := Format(sGeminiErrorModelNotFound, [ModelName, HTTPResponse.StatusCode, HTTPResponse.StatusText]);
 
     except
       on E: Exception do
