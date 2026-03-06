@@ -294,7 +294,7 @@ begin
   Result := ARawResponse.Trim;
 
   // Remove common prefixes if any (Gemini usually follows instructions well)
-  Result := TRegEx.Replace(Result, '^(Translation:|Translated text:|Result:|The translation is:)', '', [roIgnoreCase]);
+  Result := TRegEx.Replace(Result, '^(Translation:|Translated text:|Result:|The translation is:)\s*', '', [roIgnoreCase]);
 
   // Trim again
   Result := Result.Trim;
