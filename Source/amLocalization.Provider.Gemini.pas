@@ -172,7 +172,7 @@ begin
     HTTPClient.ConnectionTimeout := Timeout;
     HTTPClient.ResponseTimeout := Timeout;
 
-    var URL := Format('%s/%s?key=%s', [sBaseURL, '/models', APIKey]);
+    var URL := Format('%s/%s?key=%s', [sBaseURL, 'models', APIKey]);
 
     try
       var HTTPResponse := HTTPClient.Get(URL);
@@ -322,7 +322,7 @@ begin
     HTTPClient.ResponseTimeout := 5000;
 
     // Use a simple API call to validate the key
-    var URL := Format('%s/%s?key=%s', [sBaseURL, '/models', AAPIKey]);
+    var URL := Format('%s/%s?key=%s', [sBaseURL, 'models', AAPIKey]);
 
     try
       var HTTPResponse := HTTPClient.Get(URL);
