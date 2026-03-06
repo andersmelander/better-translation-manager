@@ -29,7 +29,7 @@ uses
 type
   TTranslationProviderGemini = class(TInterfacedObject, ITranslationProvider, ITranslationProviderGemini)
   private const
-    sBaseURL = 'https://generativelanguage.googleapis.com/v1beta';
+    sBaseURL = 'https://generativelanguage.googleapis.com/v1';
   private
     FSettings: ITranslationProviderSettingsGemini;
     FRateLimiter: IRateLimiter;
