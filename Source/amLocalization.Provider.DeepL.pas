@@ -169,8 +169,7 @@ begin
       while True do
       begin
         // Throttle requests
-        if (FLastRequest.IsRunning) and
-           (FLastRequest.ElapsedMilliseconds < FMinRequestInterval) then
+        if (FLastRequest.IsRunning) and (FLastRequest.ElapsedMilliseconds < FMinRequestInterval) then
           Sleep(FMinRequestInterval);
 
         // Call web service
@@ -189,22 +188,22 @@ begin
 
           FBackoffCooldown := ThrottleCooldownCount;
 
-          if FMinRequestInterval = 0 then
+          if (FMinRequestInterval = 0) then
             FMinRequestInterval := ThrottleMinRequestInterval
-          else if FMinRequestInterval < ThrottleMaxRequestInterval then
+          else
+          if (FMinRequestInterval < ThrottleMaxRequestInterval) then
             FMinRequestInterval := Min(
               ThrottleMaxRequestInterval,
               Trunc(FMinRequestInterval * ThrottleBackoffFactor)
             )
           else
-            Break;
-        end
-        else
-          Break;
+            break;
+        end else
+          break;
       end;
 
       // Checks the possible exceptions on the result
-      if HTTPResponse = nil then
+      if (HTTPResponse = nil) then
         raise EDeepLLocalizationProvider.Create(sDeepLErrorUnefinedResponse);
 
       case HTTPResponse.StatusCode of
@@ -218,7 +217,7 @@ begin
               raise EDeepLLocalizationProvider.Create(sDeepLErrorEmptyResponse);
 
             JSONResponse := TJSONObject.ParseJSONValue(TextResponse) as TJSONObject;
-            if JSONResponse = nil then
+            if (JSONResponse = nil) then
               raise EDeepLLocalizationProvider.Create(sDeepLErrorInvalidResponse);
 
             try
@@ -234,18 +233,18 @@ begin
             end;
 
             // Throttling backoff recovery
-            if FBackoffCooldown > 0 then
+            if (FBackoffCooldown > 0) then
             begin
               Dec(FBackoffCooldown);
 
-              if FBackoffCooldown = 0 then
+              if (FBackoffCooldown = 0) then
               begin
                 FMinRequestInterval := Max(
                   ThrottleMinRequestInterval,
                   Trunc(FMinRequestInterval * ThrottleRecoverFactor)
                 );
 
-                if FMinRequestInterval > ThrottleMinRequestInterval then
+                if (FMinRequestInterval > ThrottleMinRequestInterval) then
                   FBackoffCooldown := ThrottleCooldownCount; // Start counter for next recovery
               end;
             end;
