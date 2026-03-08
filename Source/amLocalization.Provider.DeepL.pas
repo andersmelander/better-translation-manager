@@ -71,6 +71,8 @@ uses
   Vcl.Dialogs,
   System.StrUtils,
   System.Net.HttpClient,
+  System.Net.URLClient,
+  System.NetEncoding,
   System.JSON,
   System.Generics.Collections,
   System.Math,
@@ -117,9 +119,13 @@ end;
 function TTranslationProviderDeepL.TranslateText(const ASourceLang, ATargetLang, AText: string): string;
 var
   Msg: string;
+
   RequestClient: THTTPClient;
   RequestParams: TStringList;
+  RespStream: TStringStream;
+  Headers: TNetHeaders;
   HTTPResponse: IHTTPResponse;
+
   JSONResponse, JSONTranslationItem: TJSONObject;
   JSONResultArray: TJSONArray;
   TextResponse: string;
@@ -140,116 +146,133 @@ begin
   RequestClient := THTTPClient.Create;
 
   try
-
-    // Setup the parameters to for the HTTP request
-
     RequestParams := TStringList.Create;
-    try
-      RequestParams.DefaultEncoding := TEncoding.UTF8;
+    RespStream := TStringStream.Create('', TEncoding.UTF8);
 
-      RequestParams.Add('auth_key=' + DeepLAPIKey);
+    try
+      // Authentication Header
+      SetLength(Headers, 2);
+      Headers[0].Name := 'Authorization';
+      Headers[0].Value := 'DeepL-Auth-Key ' + DeepLAPIKey;
+      Headers[1].Name := 'Content-Type';
+      Headers[1].Value := 'application/x-www-form-urlencoded';
+
+      // POST Parameters
+      RequestParams.Clear;
+      RequestParams.Add('text=' + AText);
       RequestParams.Add('source_lang=' + ASourceLang);
       RequestParams.Add('target_lang=' + ATargetLang);
-      RequestParams.Add('text=' + AText);
       RequestParams.Add('split_sentences=0');
       RequestParams.Add('preserve_formatting=1');
       RequestParams.Add('formality=default');
 
-      while (True) do
+      while True do
       begin
         // Throttle requests
-        if (FLastRequest.IsRunning) and (FLastRequest.ElapsedMilliseconds < FMinRequestInterval) then
+        if (FLastRequest.IsRunning) and
+           (FLastRequest.ElapsedMilliseconds < FMinRequestInterval) then
           Sleep(FMinRequestInterval);
 
         // Call web service
-        HTTPResponse := RequestClient.Post(DeepLAPIAddress, RequestParams);
+        HTTPResponse := RequestClient.Post(
+          DeepLAPIAddress,
+          RequestParams,
+          RespStream,
+          TEncoding.UTF8,
+          Headers
+        );
 
         FLastRequest := TStopWatch.StartNew;
 
         if (HTTPResponse <> nil) and (HTTPResponse.StatusCode = 429) then
         begin
+
           FBackoffCooldown := ThrottleCooldownCount;
 
-          if (FMinRequestInterval = 0) then
+          if FMinRequestInterval = 0 then
             FMinRequestInterval := ThrottleMinRequestInterval
+          else if FMinRequestInterval < ThrottleMaxRequestInterval then
+            FMinRequestInterval := Min(
+              ThrottleMaxRequestInterval,
+              Trunc(FMinRequestInterval * ThrottleBackoffFactor)
+            )
           else
-          if (FMinRequestInterval < ThrottleMaxRequestInterval) then
-            FMinRequestInterval := Min(ThrottleMaxRequestInterval, Trunc(FMinRequestInterval * ThrottleBackoffFactor)) // Exponential backoff
-          else
-            break;
-        end else
-          break;
+            Break;
+        end
+        else
+          Break;
+      end;
 
+      // Checks the possible exceptions on the result
+      if HTTPResponse = nil then
+        raise EDeepLLocalizationProvider.Create(sDeepLErrorUnefinedResponse);
+
+      case HTTPResponse.StatusCode of
+
+        200: // Response ok
+          begin
+
+            TextResponse := RespStream.DataString;
+
+            if TextResponse.IsEmpty then
+              raise EDeepLLocalizationProvider.Create(sDeepLErrorEmptyResponse);
+
+            JSONResponse := TJSONObject.ParseJSONValue(TextResponse) as TJSONObject;
+            if JSONResponse = nil then
+              raise EDeepLLocalizationProvider.Create(sDeepLErrorInvalidResponse);
+
+            try
+              JSONResultArray := JSONResponse.GetValue('translations') as TJSONArray;
+              if (JSONResultArray = nil) or (JSONResultArray.Count = 0) then
+                raise EDeepLLocalizationProvider.Create(sDeepLErrorInvalidResponse);
+
+              JSONTranslationItem := JSONResultArray.Items[0] as TJSONObject;
+              Result := JSONTranslationItem.GetValue<string>('text');
+
+            finally
+              JSONResponse.Free;
+            end;
+
+            // Throttling backoff recovery
+            if FBackoffCooldown > 0 then
+            begin
+              Dec(FBackoffCooldown);
+
+              if FBackoffCooldown = 0 then
+              begin
+                FMinRequestInterval := Max(
+                  ThrottleMinRequestInterval,
+                  Trunc(FMinRequestInterval * ThrottleRecoverFactor)
+                );
+
+                if FMinRequestInterval > ThrottleMinRequestInterval then
+                  FBackoffCooldown := ThrottleCooldownCount; // Start counter for next recovery
+              end;
+            end;
+          end;
+
+        429: // Other responses
+          raise EDeepLLocalizationProvider.Create(sDeepLErrorTooManyRequests);
+
+        403:
+          raise EDeepLLocalizationProvider.Create(sDeepLErrorForbidden);
+
+      else
+        raise EDeepLLocalizationProvider.CreateFmt(
+          sDeepLErrorGeneralException,
+          [HTTPResponse.StatusCode.ToString, HTTPResponse.StatusText]
+        );
       end;
 
     finally
+      RespStream.Free;
       RequestParams.Free;
-    end;
-
-    // Checks the possible exceptions on the result
-    if (HTTPResponse = nil) then
-      raise EDeepLLocalizationProvider.Create(sDeepLErrorUnefinedResponse);
-
-    case HTTPResponse.StatusCode of
-      200: // Response ok
-        begin
-          TextResponse := HTTPResponse.ContentAsString(TEncoding.UTF8);
-
-          if TextResponse.IsEmpty then
-            raise EDeepLLocalizationProvider.Create(sDeepLErrorEmptyResponse);
-
-          JSONResponse := TJSONObject.ParseJSONValue(TextResponse) as TJSONObject;
-
-          if (JSONResponse = nil) then
-            raise EDeepLLocalizationProvider.Create(sDeepLErrorInvalidResponse);
-          try
-            JSONResultArray := JSONResponse.GetValue('translations') as TJSONArray;
-
-            if (JSONResultArray = nil) then
-              raise EDeepLLocalizationProvider.Create(sDeepLErrorInvalidResponse);
-
-            if (JSONResultArray.Count <> 1) then
-              raise EDeepLLocalizationProvider.Create(sDeepLErrorMoreThanOneTranslation);
-
-            JSONTranslationItem := JSONResultArray[0] as TJSONObject;
-
-            if (JSONTranslationItem = nil) then
-              raise EDeepLLocalizationProvider.Create(sDeepLErrorInvalidTranslation);
-
-            Result := (JSONTranslationItem.GetValue('text') as TJSONString).Value;
-          finally
-            JSONResponse.Free;
-          end;
-
-          // Throttling backoff recovery
-          if (FBackoffCooldown > 0) then
-          begin
-            Dec(FBackoffCooldown);
-
-            if (FBackoffCooldown = 0) then
-            begin
-              FMinRequestInterval := Max(ThrottleMinRequestInterval, Trunc(FMinRequestInterval * ThrottleRecoverFactor));
-
-              if (FMinRequestInterval > ThrottleMinRequestInterval) then
-                // Start counter for next recovery
-                FBackoffCooldown := ThrottleCooldownCount;
-            end;
-          end;
-        end;
-
-      429: // Other responses
-        raise EDeepLLocalizationProvider.Create(sDeepLErrorTooManyRequests);
-
-      403:
-        raise EDeepLLocalizationProvider.Create(sDeepLErrorForbidden);
-
-    else
-      raise EDeepLLocalizationProvider.CreateFmt(sDeepLErrorGeneralException, [HTTPResponse.StatusCode.ToString, HTTPResponse.StatusText]);
     end;
 
   finally
     RequestClient.Free;
   end;
+
 end;
 
 function TTranslationProviderDeepL.BeginLookup(SourceLanguage, TargetLanguage: TLanguageItem): boolean;
