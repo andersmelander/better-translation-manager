@@ -2905,4 +2905,30 @@ object FormMain: TFormMain
     Left = 296
     Top = 174
   end
+  object TaskDialogPurge: TTaskDialog
+    Buttons = <>
+    Caption = 'Purge unused items'
+    CommonButtons = [tcbYes, tcbNo]
+    DefaultButton = tcbNo
+    RadioButtons = <>
+    Text = 'Lorem ipsum dolor'
+    Title = 'Purge all unused items'
+    VerificationText = 'Only items without translations'
+    Left = 716
+    Top = 334
+  end
+  object TaskDialogPurgeSelected: TTaskDialog
+    Buttons = <>
+    Caption = 'Purge unused items'
+    CommonButtons = [tcbYes, tcbNo]
+    DefaultButton = tcbNo
+    RadioButtons = <>
+    Text = 
+      'Do you want to delete all unused entities from among the selecte' +
+      'd items?'
+    Title = 'Purge selected unused items'
+    VerificationText = 'Only items without translations'
+    Left = 716
+    Top = 386
+  end
 end

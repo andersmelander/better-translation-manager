@@ -379,6 +379,8 @@ type
     ActionPurge: TAction;
     ActionGotoNextStateObsolete: TAction;
     dxBarButton24: TdxBarButton;
+    TaskDialogPurge: TTaskDialog;
+    TaskDialogPurgeSelected: TTaskDialog;
     procedure FormCreate(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure ActionProjectUpdateExecute(Sender: TObject);
@@ -839,6 +841,7 @@ uses
   RegularExpressions,
   CommCtrl,
   ClipBrd,
+  Vcl.Consts,
 {$ifdef DEBUG}
   Diagnostics,
 {$endif DEBUG}
@@ -935,7 +938,6 @@ resourcestring
 
 resourcestring
   sPurgeZombieItemsCaption = 'Purge unused items';
-  sPurgeOnlyUntranslatedZombieItems = 'Only items without translations';
   sPurgeZombieItemsStatusTitle = 'Purge completed';
   sPurgeZombieItemsStatus = 'The following was removed from the project:'#13#13+
     'Modules: %.0n'#13'Items: %.0n'#13'Properties: %.0n';
@@ -1036,6 +1038,73 @@ begin
   end;
 end;
 
+
+// -----------------------------------------------------------------------------
+//
+// TaskMessageDlg with checkbox
+//
+// -----------------------------------------------------------------------------
+function OptionalPrompt(const Title, Msg: string; DlgType: TMsgDlgType;
+  Buttons: TMsgDlgButtons; DefaultButton: TMsgDlgBtn; const Verification: string; var VerificationFlag: boolean): Integer; overload;
+const
+  IconMap: array[TMsgDlgIcon] of TTaskDialogIcon = (tdiNone, tdiWarning, tdiError, tdiInformation, tdiShield);
+const
+  Captions: array[TMsgDlgType] of Pointer = (@SMsgDlgWarning, @SMsgDlgError,
+    @SMsgDlgInformation, @SMsgDlgConfirm, nil);
+begin
+  var TaskDialog := TTaskDialog.Create(nil);
+  try
+    TaskDialog.Title := Title;
+    TaskDialog.Text := Msg;
+    TaskDialog.MainIcon := IconMap[MsgDlgIcons[DlgType]];
+    TaskDialog.Caption := LoadResString(Captions[DlgType]);
+    TaskDialog.VerificationText := Verification;
+    if (VerificationFlag) then
+      TaskDialog.Flags := TaskDialog.Flags + [tfVerificationFlagChecked];
+
+    TaskDialog.CommonButtons := [];
+    for var DlgBtn := Low(TMsgDlgBtn) to High(TMsgDlgBtn) do
+      if DlgBtn in Buttons then
+      begin
+        case DlgBtn of
+          mbOK: TaskDialog.CommonButtons := TaskDialog.CommonButtons + [tcbOk];
+          mbYes: TaskDialog.CommonButtons := TaskDialog.CommonButtons + [tcbYes];
+          mbNo: TaskDialog.CommonButtons := TaskDialog.CommonButtons + [tcbNo];
+          mbCancel: TaskDialog.CommonButtons := TaskDialog.CommonButtons + [tcbCancel];
+          mbRetry: TaskDialog.CommonButtons := TaskDialog.CommonButtons + [tcbRetry];
+          mbClose: TaskDialog.CommonButtons := TaskDialog.CommonButtons + [tcbClose];
+        end;
+      end;
+
+    if (TaskDialog.Execute) then
+    begin
+      Result := TaskDialog.ModalResult;
+      VerificationFlag := (tfVerificationFlagChecked in TaskDialog.Flags);
+    end else
+      Result := mrNone;
+
+  finally
+    TaskDialog.Free;
+  end;
+end;
+
+function IsOptionalPromptSuppressed(const SupressKey: string): boolean;
+begin
+  Result := (StrToIntDef(TranslationManagerSettings.Messages.Values['Suppress.'+SupressKey], 0) <> 0);
+end;
+
+function OptionalPrompt(const Title, Msg: string; DlgType: TMsgDlgType;
+  Buttons: TMsgDlgButtons; DefaultButton: TMsgDlgBtn; const SupressKey: string): Integer; overload;
+resourcestring
+  sDontShowThisAgain = 'Don''t show this again';
+begin
+  var VerificationFlag := IsOptionalPromptSuppressed(SupressKey);
+
+  Result := OptionalPrompt(Title, Msg, DlgType, Buttons, DefaultButton, sDontShowThisAgain, VerificationFlag);
+
+  if (Result <> mrNone) and (VerificationFlag) then
+    TranslationManagerSettings.Messages.Values['Suppress.'+SupressKey] := '1';
+end;
 
 // -----------------------------------------------------------------------------
 //
@@ -1783,7 +1852,6 @@ var
   i: integer;
   Item: TCustomLocalizerItem;
   Count, ElegibleCount: integer;
-  ElegibleWarning: string;
   Stats, OneStats: TTranslationMemoryMergeStats;
   DuplicateAction: TTranslationMemoryDuplicateAction;
   Progress: IProgress;
@@ -1813,14 +1881,16 @@ begin
   if (ElegibleCount = 0) then
     Exit;
 
-  if (ElegibleCount < Count) then
-    ElegibleWarning :=  #13#13 + Format(sAddToDictionaryEligibleWarning, [Count-ElegibleCount])
-  else
-    ElegibleWarning :=  '';
+  if (not IsOptionalPromptSuppressed('AddToDictionary')) then
+  begin
+    var ElegibleWarning: string := '';
+    if (ElegibleCount < Count) then
+      ElegibleWarning :=  #13#13 + Format(sAddToDictionaryEligibleWarning, [Count-ElegibleCount]);
 
-  if (TaskMessageDlg(sAddToDictionaryPromptTitle, Format(sAddToDictionaryPrompt, [ElegibleCount, ElegibleWarning]),
-    mtConfirmation, [mbYes, mbNo], 0, mbYes) <> mrYes) then
-    Exit;
+    if (OptionalPrompt(sAddToDictionaryPromptTitle, Format(sAddToDictionaryPrompt, [ElegibleCount, ElegibleWarning]),
+      mtConfirmation, [mbYes, mbNo], mbYes, 'AddToDictionary') <> mrYes) then
+      Exit;
+  end;
 
   if (FTranslationMemoryPeek <> nil) then
     FTranslationMemoryPeek.Cancel;
@@ -1867,9 +1937,14 @@ begin
   if (DuplicateAction = tmDupActionAbort) and (ElegibleCount = 1) then
     Exit; // Nothing to report
 
-  TaskMessageDlg(sTranslationMemoryAddCompleteTitle,
-    Format(sTranslationMemoryMergeComplete, [Stats.Added * 1.0, Stats.Merged * 1.0, Stats.Skipped * 1.0, Stats.Duplicate * 1.0]),
-    mtInformation, [mbOK], 0);
+  if (not IsOptionalPromptSuppressed('AddToDictionaryStatus')) then
+  begin
+    OptionalPrompt(sTranslationMemoryAddCompleteTitle,
+      Format(sTranslationMemoryMergeComplete, [Stats.Added * 1.0, Stats.Merged * 1.0, Stats.Skipped * 1.0, Stats.Duplicate * 1.0]),
+      mtInformation, [mbOK], mbOK, 'AddToDictionaryStatus');
+  end else
+    QueueToast(sTranslationMemoryAddCompleteTitle, True);
+
 end;
 
 procedure TFormMain.ActionTranslationMemoryAddUpdate(Sender: TObject);
@@ -4459,7 +4534,6 @@ end;
 
 procedure TFormMain.ActionProjectPurgeExecute(Sender: TObject);
 resourcestring
-  sPurgeZombieItemsTitle = 'Purge all unused items';
   sPurgeZombieItemsNone = 'No modules or items are marked as unused.'#13#13+
     'Nothing to purge';
   sPurgeZombieItems = '%.0n modules, %.0n items, %.0n properties, and %.0n translations are marked as unused.'#13+
@@ -4470,31 +4544,21 @@ begin
 
   if (CountBefore.UnusedModule = 0) and (CountBefore.UnusedItem = 0) and (CountBefore.UnusedProperty = 0) then
   begin
-    TaskMessageDlg(sPurgeZombieItemsTitle, sPurgeZombieItemsNone, mtInformation, [mbOK], 0);
+    TaskMessageDlg(sPurgeZombieItemsCaption, sPurgeZombieItemsNone, mtInformation, [mbOK], 0);
     Exit;
   end;
 
-  var KeepTranslations: boolean;
-  var TaskDialog := TTaskDialog.Create(nil);
-  try
-    TaskDialog.Caption := sPurgeZombieItemsCaption;
-    TaskDialog.Title := sPurgeZombieItemsTitle;
-    TaskDialog.Text := Format(sPurgeZombieItems, [1.0*CountBefore.UnusedModule, 1.0*CountBefore.UnusedItem, 1.0*CountBefore.UnusedProperty, 1.0*CountBefore.UnusedTranslation]);
-    TaskDialog.CommonButtons := [tcbYes, tcbNo];
-    TaskDialog.VerificationText := sPurgeOnlyUntranslatedZombieItems;
+  TaskDialogPurge.Text := Format(sPurgeZombieItems, [1.0*CountBefore.UnusedModule, 1.0*CountBefore.UnusedItem, 1.0*CountBefore.UnusedProperty, 1.0*CountBefore.UnusedTranslation]);
 
-    TaskDialog.Execute;
+  if (not TaskDialogPurge.Execute) then
+    exit;
 
-    if (TaskDialog.ModalResult <> mrYes) then
-      exit;
-
-    KeepTranslations := (tfVerificationFlagChecked in TaskDialog.Flags);
-  finally
-    TaskDialog.Free;
-  end;
+  if (TaskDialogPurge.ModalResult <> mrYes) then
+    exit;
 
   SaveCursor(crHourGlass);
 
+  var KeepTranslations := (tfVerificationFlagChecked in TaskDialogPurge.Flags);
   var SaveModified := FProject.Modified;
   FProject.Modified := False;
 
@@ -4897,33 +4961,18 @@ end;
 // -----------------------------------------------------------------------------
 
 procedure TFormMain.ActionPurgeSelectedExecute(Sender: TObject);
-resourcestring
-  sPurgeSelectedZombieItemsTitle = 'Purge selected unused items';
-  sPurgeSelectedZombieItems = 'Do you want to delete all unused entities from among the selected items?';
 var
   Items: TArray<TCustomLocalizerItem>;
 begin
   var CountBefore := CountStuff;
 
-  var KeepTranslations: boolean;
-  var TaskDialog := TTaskDialog.Create(nil);
-  try
-    TaskDialog.Caption := sPurgeZombieItemsCaption;
-    TaskDialog.Title := sPurgeSelectedZombieItemsTitle;
-    TaskDialog.Text := sPurgeSelectedZombieItems;
-    TaskDialog.CommonButtons := [tcbYes, tcbNo];
-    TaskDialog.VerificationText := sPurgeOnlyUntranslatedZombieItems;
+  if (not TaskDialogPurgeSelected.Execute) then
+    exit;
 
-    TaskDialog.Execute;
+  if (TaskDialogPurgeSelected.ModalResult <> mrYes) then
+    exit;
 
-    if (TaskDialog.ModalResult <> mrYes) then
-      exit;
-
-    KeepTranslations := (tfVerificationFlagChecked in TaskDialog.Flags);
-  finally
-    TaskDialog.Free;
-  end;
-
+  var KeepTranslations := (tfVerificationFlagChecked in TaskDialogPurgeSelected.Flags);
   var SaveModified := FProject.Modified;
   FProject.Modified := False;
 
