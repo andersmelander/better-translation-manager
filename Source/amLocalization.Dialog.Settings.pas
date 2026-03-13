@@ -360,6 +360,8 @@ type
     ActionGeminiTest: TAction;
     LayoutItemGeminiRateLimit: TdxLayoutItem;
     EditGeminiRateLimit: TcxSpinEdit;
+    LayoutControlAdvancedGroupMessages: TdxLayoutGroup;
+    LayoutItemAdvancedMessagesShowSupressed: TdxLayoutLabeledItem;
     procedure TextEditTranslatorMSAPIKeyPropertiesButtonClick(Sender: TObject; AButtonIndex: Integer);
     procedure TextEditTranslatorMSAPIKeyPropertiesChange(Sender: TObject);
     procedure ActionCategoryExecute(Sender: TObject);
@@ -443,9 +445,11 @@ type
     procedure ActionGeminiDetectModelsExecute(Sender: TObject);
     procedure ActionGeminiTestExecute(Sender: TObject);
     procedure ActionGeminiHasKeyUpdate(Sender: TObject);
+    procedure LayoutItemAdvancedMessagesShowSupressedHyperlinkClick(Sender: TObject; AArgs: TdxHyperlinkClickEventArgs);
   private
     FSpellCheckerAutoCorrectOptions: TdxSpellCheckerAutoCorrectOptions;
     FRestartRequired: boolean;
+    FClearSuppressed: boolean;
     FSpellChecker: TdxSpellChecker;
     FRibbonStyle: TdxRibbonStyle;
   private
@@ -804,6 +808,16 @@ procedure TFormSettings.ApplySettings;
       Result := 0;
   end;
 
+  procedure DoClearSuppressed;
+  begin
+    for var i := 0 to TranslationManagerSettings.Messages.Count-1 do
+    begin
+      var Name := TranslationManagerSettings.Messages.Names[i];
+      if (Name.StartsWith('suppress.', True)) then
+        TranslationManagerSettings.Messages.Values[Name] := '0';
+    end;
+  end;
+
 resourcestring
   sWarningPortableSettingsCaption = 'Portable Configuration';
   sWarningPortableSettingsMessage = 'A portable settings file already exist.'#13#13+
@@ -901,6 +915,8 @@ begin
   ** Advanced section
   *)
   TranslationManagerSettings.System.SingleInstance := CheckBoxSingleInstance.Checked;
+  if (FClearSuppressed) then
+    DoClearSuppressed;
 
   if (TranslationManagerSettings.System.Portable <> CheckBoxPortable.Checked) then
   begin
@@ -1803,6 +1819,15 @@ begin
   // TODO : todo-marker to flag that this is a known problem
   if (LayoutGroupTranslatorTM.ButtonOptions.CheckBox.Checked) then
     RequireRestart;
+end;
+
+procedure TFormSettings.LayoutItemAdvancedMessagesShowSupressedHyperlinkClick(Sender: TObject; AArgs: TdxHyperlinkClickEventArgs);
+resourcestring
+  sSuppressReset = 'Suppressed dialogs will be enabled again.';
+begin
+  FClearSuppressed := True;
+  LayoutItemAdvancedMessagesShowSupressed.CaptionOptions.ImageIndex := ImageIndexCheck;
+  LayoutItemAdvancedMessagesShowSupressed.CaptionOptions.Text := sSuppressReset;
 end;
 
 procedure TFormSettings.ListViewProofingAutoCorrectReplacementsClick(Sender: TObject);

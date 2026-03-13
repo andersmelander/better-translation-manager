@@ -71,6 +71,7 @@ inherited FormSettings: TFormSettings
     Width = 602
     Height = 501
     AutoSize = True
+    OptionsImage.Images = DataModuleMain.ImageListSmall
     ExplicitWidth = 602
     ExplicitHeight = 501
     object EditTranslatorDeepLAPIKey: TcxButtonEdit [0]
@@ -92,8 +93,8 @@ inherited FormSettings: TFormSettings
       Width = 371
     end
     object EditOllamaBaseURL: TcxButtonEdit [1]
-      Left = 181
-      Top = 209
+      Left = 10000
+      Top = 10000
       Properties.Buttons = <
         item
           ImageIndex = 0
@@ -106,19 +107,21 @@ inherited FormSettings: TFormSettings
       Style.HotTrack = False
       Style.TransparentBorder = False
       TabOrder = 35
+      Visible = False
       Width = 371
     end
     object ComboBoxOllamaModel: TcxComboBox [2]
-      Left = 181
-      Top = 237
+      Left = 10000
+      Top = 10000
       Style.HotTrack = False
       Style.TransparentBorder = False
       TabOrder = 36
+      Visible = False
       Width = 371
     end
     object EditOllamaTimeout: TcxSpinEdit [3]
-      Left = 181
-      Top = 265
+      Left = 10000
+      Top = 10000
       Properties.Alignment.Horz = taRightJustify
       Properties.DisplayFormat = ',##0 ms'
       Properties.EditFormat = '0'
@@ -129,27 +132,30 @@ inherited FormSettings: TFormSettings
       Style.TransparentBorder = False
       TabOrder = 37
       Value = 5000
+      Visible = False
       Width = 100
     end
     object ButtonOllamaDetectModels: TcxButton [4]
-      Left = 305
-      Top = 306
+      Left = 10000
+      Top = 10000
       Width = 120
       Height = 25
       Action = ActionOllamaDetectModels
       TabOrder = 38
+      Visible = False
     end
     object ButtonOllamaTest: TcxButton [5]
-      Left = 432
-      Top = 306
+      Left = 10000
+      Top = 10000
       Width = 120
       Height = 25
       Action = ActionOllamaTest
       TabOrder = 39
+      Visible = False
     end
     object EditGeminiAPIKey: TcxButtonEdit [6]
-      Left = 181
-      Top = 391
+      Left = 10000
+      Top = 10000
       Properties.Buttons = <
         item
           ImageIndex = 0
@@ -162,19 +168,21 @@ inherited FormSettings: TFormSettings
       Style.HotTrack = False
       Style.TransparentBorder = False
       TabOrder = 40
+      Visible = False
       Width = 371
     end
     object ComboBoxGeminiModel: TcxComboBox [7]
-      Left = 181
-      Top = 419
+      Left = 10000
+      Top = 10000
       Style.HotTrack = False
       Style.TransparentBorder = False
       TabOrder = 41
+      Visible = False
       Width = 371
     end
     object EditGeminiTemperature: TcxSpinEdit [8]
-      Left = 181
-      Top = 447
+      Left = 10000
+      Top = 10000
       Properties.Alignment.Horz = taRightJustify
       Properties.AssignedValues.MinValue = True
       Properties.DisplayFormat = '0.0'
@@ -188,11 +196,12 @@ inherited FormSettings: TFormSettings
       Style.TransparentBorder = False
       TabOrder = 42
       Value = 0.200000000000000000
+      Visible = False
       Width = 100
     end
     object EditGeminiTimeout: TcxSpinEdit [9]
-      Left = 181
-      Top = 475
+      Left = 10000
+      Top = 10000
       Properties.Alignment.Horz = taRightJustify
       Properties.DisplayFormat = ',##0 ms'
       Properties.EditFormat = '0'
@@ -203,23 +212,26 @@ inherited FormSettings: TFormSettings
       Style.TransparentBorder = False
       TabOrder = 43
       Value = 30000
+      Visible = False
       Width = 100
     end
     object ButtonGeminiDetectModels: TcxButton [10]
-      Left = 305
-      Top = 544
+      Left = 10000
+      Top = 10000
       Width = 120
       Height = 25
       Action = ActionGeminiDetectModels
       TabOrder = 45
+      Visible = False
     end
     object ButtonGeminiTest: TcxButton [11]
-      Left = 432
-      Top = 544
+      Left = 10000
+      Top = 10000
       Width = 120
       Height = 25
       Action = ActionGeminiTest
       TabOrder = 46
+      Visible = False
     end
     object CheckBoxEditUseProposed: TcxCheckBox [12]
       Left = 10000
@@ -1155,7 +1167,7 @@ inherited FormSettings: TFormSettings
     object ListViewProofingAutoCorrectReplacements: TcxListView [67]
       Left = 10000
       Top = 10000
-      Width = 386
+      Width = 390
       Height = 85
       Anchors = [akLeft, akTop, akRight]
       ColumnClick = False
@@ -1222,7 +1234,7 @@ inherited FormSettings: TFormSettings
       Style.TransparentBorder = False
       TabOrder = 76
       Visible = False
-      Width = 162
+      Width = 164
     end
     object EditProofingAutoCorrectReplacementTo: TcxTextEdit [72]
       Left = 10000
@@ -1233,7 +1245,7 @@ inherited FormSettings: TFormSettings
       Style.TransparentBorder = False
       TabOrder = 77
       Visible = False
-      Width = 228
+      Width = 230
     end
     object CheckBoxProofingAutoCorrect: TcxCheckBox [73]
       Left = 10000
@@ -1270,8 +1282,8 @@ inherited FormSettings: TFormSettings
     end
     object LabelAutoUpdateIntro: TcxLabel [76]
       AlignWithMargins = True
-      Left = 10000
-      Top = 10000
+      Left = 33
+      Top = 337
       Margins.Left = 12
       Margins.Top = 6
       Margins.Right = 12
@@ -1286,34 +1298,31 @@ inherited FormSettings: TFormSettings
       Properties.WordWrap = True
       TabOrder = 85
       Transparent = True
-      Visible = False
-      Width = 536
+      Width = 548
     end
     object CheckBoxSingleInstance: TcxCheckBox [77]
-      Left = 10000
-      Top = 10000
+      Left = 33
+      Top = 71
       Caption = 'Use single instance of the application'
       Properties.OnChange = CheckBoxSingleInstancePropertiesChange
       Style.HotTrack = False
       Style.TransparentBorder = False
       TabOrder = 82
       Transparent = True
-      Visible = False
     end
     object ButtonRegisterFiletypes: TcxButton [78]
-      Left = 10000
-      Top = 10000
+      Left = 33
+      Top = 178
       Width = 318
       Height = 23
       Caption = 'Restore Translation Manager file associations'
       TabOrder = 84
-      Visible = False
       OnClick = ButtonRegisterFiletypesClick
     end
     object CheckBoxAutoUpdateEnabled: TcxCheckBox [79]
       AlignWithMargins = True
-      Left = 10000
-      Top = 10000
+      Left = 33
+      Top = 378
       Margins.Left = 12
       Margins.Top = 6
       Margins.Right = 12
@@ -1323,29 +1332,26 @@ inherited FormSettings: TFormSettings
       Style.TransparentBorder = False
       TabOrder = 86
       Transparent = True
-      Visible = False
     end
     object ButtonAutoUpdateNow: TcxButton [80]
-      Left = 10000
-      Top = 10000
+      Left = 33
+      Top = 452
       Width = 197
       Height = 23
       Caption = 'Check for updates now'
       TabOrder = 88
-      Visible = False
     end
     object ButtonAutoUpdateReset: TcxButton [81]
-      Left = 10000
-      Top = 10000
+      Left = 33
+      Top = 422
       Width = 197
       Height = 23
       Caption = 'Reset declined updates'
       TabOrder = 87
-      Visible = False
     end
     object CheckBoxPortable: TcxCheckBox [82]
-      Left = 10000
-      Top = 10000
+      Left = 33
+      Top = 98
       Hint = 
         'If enabled, the application will save and load settings and data' +
         ' files in the installation folder'
@@ -1355,7 +1361,6 @@ inherited FormSettings: TFormSettings
       Style.TransparentBorder = False
       TabOrder = 83
       Transparent = True
-      Visible = False
       OnClick = CheckBoxPortableClick
     end
     object ButtonThemeLight: TcxButton [83]
@@ -1557,8 +1562,8 @@ inherited FormSettings: TFormSettings
       Visible = False
     end
     object EditGeminiRateLimit: TcxSpinEdit [89]
-      Left = 181
-      Top = 503
+      Left = 10000
+      Top = 10000
       Hint = 
         'Requests Per Minute'#13#10'The value is tied to the Gemini project ass' +
         'ociated with the specified API key.'#13#10'The actual rate limit that ' +
@@ -1573,6 +1578,7 @@ inherited FormSettings: TFormSettings
       Style.HotTrack = False
       Style.TransparentBorder = False
       TabOrder = 44
+      Visible = False
       Width = 100
     end
     inherited LayoutControlGroup_Root: TdxLayoutGroup
@@ -1627,12 +1633,14 @@ inherited FormSettings: TFormSettings
     object LayoutGroupCategoryProofing: TdxLayoutGroup
       Parent = LayoutGroupCategories
       CaptionOptions.Text = 'Proofing'
+      ItemIndex = 1
       ScrollOptions.Vertical = smIndependent
       Index = 5
     end
     object LayoutGroupCategoryAdvanced: TdxLayoutGroup
       Parent = LayoutGroupCategories
       CaptionOptions.Text = 'Advanced'
+      ItemIndex = 2
       ScrollOptions.Vertical = smIndependent
       Index = 6
     end
@@ -1643,7 +1651,7 @@ inherited FormSettings: TFormSettings
       CaptionOptions.Visible = False
       LayoutLookAndFeel = DataModuleMain.LayoutSkinLookAndFeelNoPadding
       Hidden = True
-      ItemIndex = 2
+      ItemIndex = 6
       LayoutDirection = ldTabbed
       ShowBorder = False
       UseIndent = False
@@ -2669,7 +2677,7 @@ inherited FormSettings: TFormSettings
       Parent = LayoutGroupCategoryAdvanced
       CaptionOptions.Text = 'Auto Update'
       Visible = False
-      Index = 2
+      Index = 3
     end
     object LayoutControlAdvancedGroup6: TdxLayoutGroup
       Parent = LayoutControlAdvancedGroup5
@@ -3027,6 +3035,18 @@ inherited FormSettings: TFormSettings
       ControlOptions.OriginalWidth = 100
       ControlOptions.ShowBorder = False
       Index = 4
+    end
+    object LayoutControlAdvancedGroupMessages: TdxLayoutGroup
+      Parent = LayoutGroupCategoryAdvanced
+      CaptionOptions.Text = 'Messages'
+      Index = 2
+    end
+    object LayoutItemAdvancedMessagesShowSupressed: TdxLayoutLabeledItem
+      Parent = LayoutControlAdvancedGroupMessages
+      CaptionOptions.Cursor = crHandPoint
+      CaptionOptions.Text = '[URL=]Re-enable all suppressed dialogs[/URL]'
+      OnHyperlinkClick = LayoutItemAdvancedMessagesShowSupressedHyperlinkClick
+      Index = 0
     end
   end
   inherited ActionList: TActionList
