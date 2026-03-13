@@ -3044,7 +3044,7 @@ inherited FormSettings: TFormSettings
     object LayoutItemAdvancedMessagesShowSupressed: TdxLayoutLabeledItem
       Parent = LayoutControlAdvancedGroupMessages
       CaptionOptions.Cursor = crHandPoint
-      CaptionOptions.Text = '[URL=]Show all suppressed dialogs[/URL]'
+      CaptionOptions.Text = '[URL=]Re-enable all suppressed dialogs[/URL]'
       OnHyperlinkClick = LayoutItemAdvancedMessagesShowSupressedHyperlinkClick
       Index = 0
     end

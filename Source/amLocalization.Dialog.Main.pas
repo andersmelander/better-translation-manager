@@ -2109,24 +2109,40 @@ begin
 
   TaskDialogTranslate.Title := Format(sTranslateAutoPromptTitle, [TranslationProvider.ProviderName]);
 
-  if (Counts.TranslatedCount > 0) then
-    TaskDialogTranslate.VerificationText := sTranslateAutoPromptCheck
-  else
-    TaskDialogTranslate.VerificationText := '';
-
-  if (Counts.TranslatedCount > 0) then
+  if (Counts.ElegibleCount = 0) then
   begin
-    if (Warning <> '') then
-      Warning := Warning + #13;
-    Warning := Warning + Format(sTranslateAutoTranslatedWarning, [Counts.TranslatedCount]);
+    // Nothing to translate
+    TaskDialogTranslate.CommonButtons := [tcbOK];
+    TaskDialogTranslate.Title := sTranslateAutoNone;
+    TaskDialogTranslate.Text := Format(sTranslateAutoNone, [Counts.Count]);
+    TaskDialogTranslate.FooterText := '';
+
+    TaskDialogTranslate.Execute;
+    Exit;
   end;
 
-  if (Counts.ElegibleCount > 0) then
+  if (Counts.TranslatedCount = 0) and (Counts.Count = Counts.ElegibleCount) and (not IsOptionalPromptSuppressed('AutoTranslate')) then
   begin
+    // Simple prompt with no warning or options; Make it suppressable
+    if (OptionalPrompt(TaskDialogTranslate.Title, Format(sTranslateAutoPrompt, [Counts.ElegibleCount]),
+      mtConfirmation, [mbYes, mbNo], mbYes, 'AutoTranslate') <> mrYes) then
+      Exit;
+
+    TranslateTranslated := False;
+  end else
+  begin
+    if (Counts.TranslatedCount > 0) then
+    begin
+      TaskDialogTranslate.VerificationText := sTranslateAutoPromptCheck;
+      // Only translate untranslated by default
+      TaskDialogTranslate.Flags := TaskDialogTranslate.Flags + [tfVerificationFlagChecked];
+    end else
+      TaskDialogTranslate.VerificationText := '';
+
     TaskDialogTranslate.CommonButtons := [tcbYes, tcbNo];
     TaskDialogTranslate.Text := Format(sTranslateAutoPrompt, [Counts.ElegibleCount]);
 
-    if (Counts.Count <> Counts.ElegibleCount) and (Counts.ElegibleCount <> 0) then
+    if (Counts.Count <> Counts.ElegibleCount) then
       Warning := Format(sTranslateAutoEligibleWarning, [Counts.Count-Counts.ElegibleCount])
     else
       Warning := '';
@@ -2139,18 +2155,12 @@ begin
     end;
 
     TaskDialogTranslate.FooterText := Warning;
-  end else
-  begin
-    TaskDialogTranslate.CommonButtons := [tcbOK];
-    TaskDialogTranslate.Title := sTranslateAutoNone;
-    TaskDialogTranslate.Text := Format(sTranslateAutoNone, [Counts.Count]);
-    TaskDialogTranslate.FooterText := '';
+
+    if (not TaskDialogTranslate.Execute) or (TaskDialogTranslate.ModalResult <> mrYes) then
+      Exit;
+
+    TranslateTranslated := not(tfVerificationFlagChecked in TaskDialogTranslate.Flags);
   end;
-
-  if (not TaskDialogTranslate.Execute) or (TaskDialogTranslate.ModalResult <> mrYes) then
-    Exit;
-
-  TranslateTranslated := not(tfVerificationFlagChecked in TaskDialogTranslate.Flags);
 
   SaveCursor(crAppStart);
 
