@@ -2053,6 +2053,7 @@ inherited FormSettings: TFormSettings
       ButtonOptions.ShowExpandButton = True
       Expanded = False
       ItemIndex = 1
+      OnCheckBoxStateChanged = LayoutGroupTranslatorCheckBoxStateChanged
       Index = 1
     end
     object dxLayoutItem25: TdxLayoutItem
@@ -2821,6 +2822,7 @@ inherited FormSettings: TFormSettings
       ButtonOptions.CheckBox.Visible = True
       ButtonOptions.ShowExpandButton = True
       Expanded = False
+      OnCheckBoxStateChanged = LayoutGroupTranslatorCheckBoxStateChanged
       Index = 2
     end
     object LayoutRadioButtonItemDeepLLicenseFree: TdxLayoutRadioButtonItem
@@ -2871,6 +2873,7 @@ inherited FormSettings: TFormSettings
       ButtonOptions.CheckBox.Visible = True
       ButtonOptions.ShowExpandButton = True
       ItemIndex = 4
+      OnCheckBoxStateChanged = LayoutGroupTranslatorCheckBoxStateChanged
       Index = 3
     end
     object LayoutItemOllamaBaseURL: TdxLayoutItem
@@ -2951,6 +2954,7 @@ inherited FormSettings: TFormSettings
       ButtonOptions.CheckBox.Visible = True
       ButtonOptions.ShowExpandButton = True
       ItemIndex = 4
+      OnCheckBoxStateChanged = LayoutGroupTranslatorCheckBoxStateChanged
       Index = 4
     end
     object LayoutItemGeminiAPIKey: TdxLayoutItem

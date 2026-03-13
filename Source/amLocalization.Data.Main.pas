@@ -170,6 +170,8 @@ const
   ImageIndexNotModified         = -1;
   ImageIndexWarning             = 84;
   ImageIndexCheck               = 67;
+  ImageIndexFavorite            = 89;
+  ImageIndexUnfavorite          = 90;
 
 const
   NodeImageIndexStateWarning    = 0;

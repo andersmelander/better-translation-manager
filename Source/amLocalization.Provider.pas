@@ -15,7 +15,8 @@ uses
   SysUtils,
   Generics.Collections,
   amLanguageInfo,
-  amLocalization.Model;
+  amLocalization.Model,
+  amLocalization.Provider.Settings;
 
 // -----------------------------------------------------------------------------
 //
@@ -57,15 +58,17 @@ type
 //
 // -----------------------------------------------------------------------------
 type
+  TCustomTranslationManagerProviderSettings = amLocalization.Provider.Settings.TCustomTranslationManagerProviderSettings;
+
   TTranslationProviderFactory = reference to function(): ITranslationProvider;
-  TTranslationProviderEnabled = reference to function(): boolean;
+  TTranslationProviderGetSettings = reference to function(): TCustomTranslationManagerProviderSettings;
 
   TranslationProviderRegistry = class abstract
   private type
     TProviderRecord = record
       ProviderName: string;
       ProviderFactory: TTranslationProviderFactory;
-      EnabledDelegate: TTranslationProviderEnabled;
+      SettingsDelegate: TTranslationProviderGetSettings;
       NextFreeHandle: integer;
     end;
   private
@@ -77,6 +80,7 @@ type
       Handle: integer;
       ProviderName: string;
       Enabled: boolean;
+      Favorite: boolean;
     end;
 
     TProviderEnumerator = record
@@ -95,7 +99,7 @@ type
     class constructor Create;
     class destructor Destroy;
 
-    class function RegisterProvider(const ProviderName: string; ProviderFactory: TTranslationProviderFactory; EnabledDelegate: TTranslationProviderEnabled = nil): integer;
+    class function RegisterProvider(const ProviderName: string; ProviderFactory: TTranslationProviderFactory; SettingsDelegate: TTranslationProviderGetSettings = nil): integer;
     class procedure UnregisterProvider(ProviderHandle: integer);
 
     function GetEnumerator: TProviderEnumerator;
@@ -362,10 +366,16 @@ begin
   Result.Handle := FIndex;
   Result.ProviderName := FList[FIndex].ProviderName;
 
-  if (Assigned(FList[FIndex].EnabledDelegate)) then
-    Result.Enabled := FList[FIndex].EnabledDelegate()
-  else
+  if (Assigned(FList[FIndex].SettingsDelegate)) then
+  begin
+    var Settings := FList[FIndex].SettingsDelegate;
+    Result.Enabled := Settings.Enabled;
+    Result.Favorite := Settings.Favorite;
+  end else
+  begin
     Result.Enabled := True;
+    Result.Favorite := False;
+  end;
 end;
 
 function TranslationProviderRegistry.GetEnumerator: TProviderEnumerator;
@@ -381,13 +391,13 @@ begin
   Result := FRegistry[ProviderHandle].ProviderFactory();
 end;
 
-class function TranslationProviderRegistry.RegisterProvider(const ProviderName: string; ProviderFactory: TTranslationProviderFactory; EnabledDelegate: TTranslationProviderEnabled): integer;
+class function TranslationProviderRegistry.RegisterProvider(const ProviderName: string; ProviderFactory: TTranslationProviderFactory; SettingsDelegate: TTranslationProviderGetSettings): integer;
 var
   ProviderRecord: TProviderRecord;
 begin
   ProviderRecord.ProviderName := ProviderName;
   ProviderRecord.ProviderFactory := ProviderFactory;
-  ProviderRecord.EnabledDelegate := EnabledDelegate;
+  ProviderRecord.SettingsDelegate := SettingsDelegate;
   ProviderRecord.NextFreeHandle := -1;
 
   if (FFirstFreeHandle <> -1) then

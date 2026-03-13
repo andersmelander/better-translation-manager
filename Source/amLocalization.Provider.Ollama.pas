@@ -471,9 +471,9 @@ initialization
     begin
       Result := TTranslationProviderOllama.Create;
     end,
-    function(): boolean
+    function(): TCustomTranslationManagerProviderSettings
     begin
-      Result := TranslationManagerSettings.Providers.Ollama.Enabled;
+      Result := TranslationManagerSettings.Providers.Ollama;
     end);
 
 finalization

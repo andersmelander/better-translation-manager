@@ -630,9 +630,9 @@ initialization
     begin
       Result := TTranslationProviderGemini.Create;
     end,
-    function(): boolean
+    function(): TCustomTranslationManagerProviderSettings
     begin
-      Result := TranslationManagerSettings.Providers.Gemini.Enabled;
+      Result := TranslationManagerSettings.Providers.Gemini;
     end);
 
 finalization

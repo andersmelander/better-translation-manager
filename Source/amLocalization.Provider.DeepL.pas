@@ -332,9 +332,9 @@ initialization
     begin
       Result := TTranslationProviderDeepL.Create;
     end,
-    function(): boolean
+    function(): TCustomTranslationManagerProviderSettings
     begin
-      Result := TranslationManagerSettings.Providers.DeepL.Enabled;
+      Result := TranslationManagerSettings.Providers.DeepL;
     end);
 
 finalization

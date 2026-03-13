@@ -32,6 +32,7 @@ uses
   dxSpellChecker,
 
   amLocalization.Settings,
+  amLocalization.Provider.Settings,
   amLocalization.Provider.Ollama.API,
   amLocalization.Provider.Gemini.API,
   amLocalization.Dialog,
@@ -446,6 +447,7 @@ type
     procedure ActionGeminiTestExecute(Sender: TObject);
     procedure ActionGeminiHasKeyUpdate(Sender: TObject);
     procedure LayoutItemAdvancedMessagesShowSupressedHyperlinkClick(Sender: TObject; AArgs: TdxHyperlinkClickEventArgs);
+    procedure LayoutGroupTranslatorCheckBoxStateChanged(Sender: TObject);
   private
     FSpellCheckerAutoCorrectOptions: TdxSpellCheckerAutoCorrectOptions;
     FRestartRequired: boolean;
@@ -490,6 +492,22 @@ type
     procedure PopulateColorSchemes(Items: TcxImageComboBoxItems);
     function GetSkin: string;
     procedure SetSkin(const value: string);
+
+  private type
+    TProviderMap = record
+      Handle: integer;
+      Group: TdxLayoutGroup;
+    end;
+
+  private
+    // Providers
+    FNextProviderHandle: integer;
+    FProviderMap: TDictionary<TCustomTranslationManagerProviderSettings, TProviderMap>;
+    FButtonIndexFavorite: integer;
+    FButtonIndexUnfavorite: integer;
+    procedure UpdateProviderByGroup(AGroup: TdxLayoutGroup);
+    procedure LayoutGroupTranslatorButtonFavoriteClick(Sender: TObject);
+
   protected
     procedure RequireRestart;
   protected
@@ -610,6 +628,7 @@ begin
   inherited;
 
   FSkinList := TList<TSkinDetails>.Create;
+  FProviderMap := TDictionary<TCustomTranslationManagerProviderSettings, TProviderMap>.Create;
 
   TcxExtLookupComboBoxCracker(ComboBoxSourceLanguage).TextHint := sLanguageSystemDefault;
   TcxExtLookupComboBoxCracker(ComboBoxTargetLanguage).TextHint := sLanguageSystemDefault;
@@ -630,6 +649,7 @@ destructor TFormSettings.Destroy;
 begin
   FSpellCheckerAutoCorrectOptions.Free;
   FSkinList.Free;
+  FProviderMap.Free;
 
   inherited;
 end;
@@ -704,6 +724,40 @@ end;
 // -----------------------------------------------------------------------------
 
 procedure TFormSettings.LoadSettings;
+resourcestring
+  sProviderFavorite = 'This provider is the favorite';
+  sProviderMakeFavorite = 'Make this provider the favorite';
+
+  procedure LoadProviderSettings(ASettings: TCustomTranslationManagerProviderSettings; ALayoutGroup: TdxLayoutGroup);
+  begin
+    var Map: TProviderMap;
+    Map.Handle := FNextProviderHandle;
+    Map.Group := ALayoutGroup;
+    FProviderMap.Add(ASettings, Map);
+
+    Inc(FNextProviderHandle);
+
+    // Add favorite buttons
+    var Button := TdxLayoutGroupButton(ALayoutGroup.ButtonOptions.Buttons.Add);
+    FButtonIndexFavorite := Button.Index;
+    Button.Hint := sProviderFavorite;
+    DataModuleMain.ImageListSmall.GetImage(ImageIndexFavorite, Button.Glyph);
+    Button.Visible := ASettings.Favorite;
+    Button.Enabled := ASettings.Enabled;
+    Button.Tag := Map.Handle;
+
+    Button := TdxLayoutGroupButton(ALayoutGroup.ButtonOptions.Buttons.Add);
+    FButtonIndexUnfavorite := Button.Index;
+    Button.Hint := sProviderMakeFavorite;
+    DataModuleMain.ImageListSmall.GetImage(ImageIndexUnfavorite, Button.Glyph);
+    Button.Visible := not ASettings.Favorite;
+    Button.Enabled := ASettings.Enabled;
+    Button.Tag := Map.Handle;
+    Button.OnClick := LayoutGroupTranslatorButtonFavoriteClick;
+
+    ALayoutGroup.ButtonOptions.CheckBox.Checked := ASettings.Enabled;
+  end;
+
 begin
   (*
   ** General section
@@ -741,28 +795,30 @@ begin
   (*
   ** Providers section
   *)
-  LayoutGroupTranslatorTM.ButtonOptions.CheckBox.Checked := TranslationManagerSettings.Providers.TranslationMemory.Enabled;
+  LoadProviderSettings(TranslationManagerSettings.Providers.TranslationMemory, LayoutGroupTranslatorTM);
   EditProviderTMFilename.Text := TranslationManagerSettings.Providers.TranslationMemory.Filename;
   CheckBoxTMLoadOnDemand.Checked := TranslationManagerSettings.Providers.TranslationMemory.LoadOnDemand;
   CheckBoxTMPromptToSave.Checked := TranslationManagerSettings.Providers.TranslationMemory.PromptToSave;
   CheckBoxTMBackgroundQuery.Checked := TranslationManagerSettings.Providers.TranslationMemory.BackgroundQuery;
 
+  LoadProviderSettings(TranslationManagerSettings.Providers.MicrosoftTranslatorV3, LayoutGroupTranslatorMS);
   LayoutGroupTranslatorMS.ButtonOptions.CheckBox.Checked := TranslationManagerSettings.Providers.MicrosoftTranslatorV3.Enabled;
   EditTranslatorMSAPIKey.Text := TranslationManagerSettings.Providers.MicrosoftTranslatorV3.APIKey;
   if (TranslationManagerSettings.Providers.MicrosoftTranslatorV3.APIKeyValidated) then
     EditTranslatorMSAPIKey.Properties.Buttons[0].ImageIndex := 1;
   EditTranslatorMSAPIRegion.Text := TranslationManagerSettings.Providers.MicrosoftTranslatorV3.Region;
 
-  LayoutGroupTranslatorDeepL.ButtonOptions.CheckBox.Checked := TranslationManagerSettings.Providers.Deepl.Enabled;
+  LoadProviderSettings(TranslationManagerSettings.Providers.Deepl, LayoutGroupTranslatorDeepL);
   EditTranslatorDeepLAPIKey.Text := TranslationManagerSettings.Providers.Deepl.APIKey;
   ActionProviderDeepLLicenseFree.Checked := not TranslationManagerSettings.Providers.Deepl.ProVersion;
   ActionProviderDeepLLicensePro.Checked := TranslationManagerSettings.Providers.Deepl.ProVersion;
 
-  LayoutGroupTranslatorOllama.ButtonOptions.CheckBox.Checked := TranslationManagerSettings.Providers.Ollama.Enabled;
+  LoadProviderSettings(TranslationManagerSettings.Providers.Ollama, LayoutGroupTranslatorOllama);
   EditOllamaBaseURL.Text := TranslationManagerSettings.Providers.Ollama.BaseURL;
   ComboBoxOllamaModel.Text := TranslationManagerSettings.Providers.Ollama.ModelName;
   EditOllamaTimeout.Value := TranslationManagerSettings.Providers.Ollama.Timeout;
 
+  LoadProviderSettings(TranslationManagerSettings.Providers.Gemini, LayoutGroupTranslatorGemini);
   EditGeminiAPIKey.Text := TranslationManagerSettings.Providers.Gemini.APIKey;
   ComboBoxGeminiModel.Text := TranslationManagerSettings.Providers.Gemini.ModelName;
   EditGeminiTimeout.Value := TranslationManagerSettings.Providers.Gemini.Timeout;
@@ -818,6 +874,13 @@ procedure TFormSettings.ApplySettings;
     end;
   end;
 
+  procedure SaveProviderSettings(ASettings: TCustomTranslationManagerProviderSettings);
+  begin
+    var Map := FProviderMap[ASettings];
+    ASettings.Enabled := Map.Group.ButtonOptions.CheckBox.Checked;
+    ASettings.Favorite := Map.Group.ButtonOptions.Buttons[FButtonIndexFavorite].Visible;
+  end;
+
 resourcestring
   sWarningPortableSettingsCaption = 'Portable Configuration';
   sWarningPortableSettingsMessage = 'A portable settings file already exist.'#13#13+
@@ -862,26 +925,27 @@ begin
   (*
   ** Translators section
   *)
-  TranslationManagerSettings.Providers.TranslationMemory.Enabled := LayoutGroupTranslatorTM.ButtonOptions.CheckBox.Checked;
+  SaveProviderSettings(TranslationManagerSettings.Providers.TranslationMemory);
   TranslationManagerSettings.Providers.TranslationMemory.Filename := EditProviderTMFilename.Text;
   TranslationManagerSettings.Providers.TranslationMemory.LoadOnDemand := CheckBoxTMLoadOnDemand.Checked;
   TranslationManagerSettings.Providers.TranslationMemory.PromptToSave := CheckBoxTMPromptToSave.Checked;
   TranslationManagerSettings.Providers.TranslationMemory.BackgroundQuery := CheckBoxTMBackgroundQuery.Checked;
 
-  TranslationManagerSettings.Providers.MicrosoftTranslatorV3.Enabled := LayoutGroupTranslatorMS.ButtonOptions.CheckBox.Checked;
+  SaveProviderSettings(TranslationManagerSettings.Providers.MicrosoftTranslatorV3);
   TranslationManagerSettings.Providers.MicrosoftTranslatorV3.APIKey := EditTranslatorMSAPIKey.Text;
   TranslationManagerSettings.Providers.MicrosoftTranslatorV3.APIKeyValidated := (EditTranslatorMSAPIKey.Properties.Buttons[0].ImageIndex = 1);
   TranslationManagerSettings.Providers.MicrosoftTranslatorV3.Region := EditTranslatorMSAPIRegion.Text;
 
-  TranslationManagerSettings.Providers.Deepl.Enabled := LayoutGroupTranslatorDeepL.ButtonOptions.CheckBox.Checked;
+  SaveProviderSettings(TranslationManagerSettings.Providers.Deepl);
   TranslationManagerSettings.Providers.Deepl.APIKey := EditTranslatorDeepLAPIKey.Text;
   TranslationManagerSettings.Providers.Deepl.ProVersion := ActionProviderDeepLLicensePro.Checked;
 
-  TranslationManagerSettings.Providers.Ollama.Enabled := LayoutGroupTranslatorOllama.ButtonOptions.CheckBox.Checked;
+  SaveProviderSettings(TranslationManagerSettings.Providers.Ollama);
   TranslationManagerSettings.Providers.Ollama.BaseURL := EditOllamaBaseURL.Text;
   TranslationManagerSettings.Providers.Ollama.ModelName := ComboBoxOllamaModel.Text;
   TranslationManagerSettings.Providers.Ollama.Timeout := EditOllamaTimeout.Value;
 
+  SaveProviderSettings(TranslationManagerSettings.Providers.Gemini);
   TranslationManagerSettings.Providers.Gemini.APIKey := EditGeminiAPIKey.Text;
   TranslationManagerSettings.Providers.Gemini.ModelName := ComboBoxGeminiModel.Text;
   TranslationManagerSettings.Providers.Gemini.Timeout := EditGeminiTimeout.Value;
@@ -1813,11 +1877,45 @@ begin
   LayoutGroupSynthesize.Enabled := LayoutCheckBoxItemSynthesize.Checked;
 end;
 
+procedure TFormSettings.UpdateProviderByGroup(AGroup: TdxLayoutGroup);
+begin
+  if (not AGroup.ButtonOptions.CheckBox.Checked) then
+  begin
+    AGroup.ButtonOptions.Buttons[FButtonIndexFavorite].Visible := False;
+    AGroup.ButtonOptions.Buttons[FButtonIndexUnfavorite].Visible := True;
+    AGroup.ButtonOptions.Buttons[FButtonIndexUnfavorite].Enabled := False;
+  end else
+    AGroup.ButtonOptions.Buttons[FButtonIndexUnfavorite].Enabled := True;
+end;
+
+procedure TFormSettings.LayoutGroupTranslatorButtonFavoriteClick(Sender: TObject);
+begin
+  // Favorite button clicked; Make provider the favorite and unfavorite all others
+  var Button := TdxLayoutGroupButton(Sender);
+  var FavoriteHandle := Button.Tag;
+
+  for var Map in FProviderMap.Values do
+  begin
+    Map.Group.ButtonOptions.Buttons[FButtonIndexFavorite].Visible := (Map.Group.ButtonOptions.Buttons[FButtonIndexFavorite].Tag = FavoriteHandle);
+    Map.Group.ButtonOptions.Buttons[FButtonIndexUnfavorite].Visible := (Map.Group.ButtonOptions.Buttons[FButtonIndexUnfavorite].Tag <> FavoriteHandle);
+  end;
+end;
+
+procedure TFormSettings.LayoutGroupTranslatorCheckBoxStateChanged(Sender: TObject);
+begin
+  var Group := TdxLayoutGroup(Sender);
+  UpdateProviderByGroup(Group);
+end;
+
 procedure TFormSettings.LayoutGroupTranslatorTMCheckBoxStateChanged(Sender: TObject);
 begin
   // Enabling the TM breaks the TM lookup for some reason, so we need a restart to get it working again.
   // TODO : todo-marker to flag that this is a known problem
-  if (LayoutGroupTranslatorTM.ButtonOptions.CheckBox.Checked) then
+  var Group := TdxLayoutGroup(Sender);
+
+  UpdateProviderByGroup(Group);
+
+  if (Group.ButtonOptions.CheckBox.Checked) then
     RequireRestart;
 end;
 
