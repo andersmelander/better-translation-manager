@@ -30,7 +30,7 @@ uses
   dxSpellCheckerCore, dxSpellChecker, cxTLData,
   dxLayoutcxEditAdapters, dxLayoutLookAndFeels, dxLayoutContainer, dxLayoutControl, dxOfficeSearchBox, dxScreenTip, dxCustomHint, cxHint,
   dxGallery, dxRibbonGallery, dxRibbonMiniToolbar, cxRichEdit, cxButtons, dxCore, dxScrollbarAnnotations,
-  dxLayoutControlAdapters,
+  dxLayoutControlAdapters, dxAlertWindow,
 
   amLanguageInfo,
   amProgress.API,
@@ -381,6 +381,7 @@ type
     dxBarButton24: TdxBarButton;
     TaskDialogPurge: TTaskDialog;
     TaskDialogPurgeSelected: TTaskDialog;
+    AlertWindowManager: TdxAlertWindowManager;
     procedure FormCreate(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure ActionProjectUpdateExecute(Sender: TObject);
@@ -556,6 +557,8 @@ type
     procedure GridItemsTableViewDataControllerCompare(ADataController: TcxCustomDataController; ARecordIndex1, ARecordIndex2,
       AItemIndex: Integer; const V1, V2: Variant; var Compare: Integer);
     procedure ActionTranslationMemoryIsEnabled(Sender: TObject);
+    procedure StatusBarPanels0Click(Sender: TObject);
+    procedure AlertWindowManagerBeforeShow(Sender: TObject; AAlertWindow: TdxAlertWindow);
   private
     FProject: TLocalizerProject;
     FProjectFilename: string;
@@ -1104,6 +1107,11 @@ begin
 
   if (Result <> mrNone) and (VerificationFlag) then
     TranslationManagerSettings.Messages.Values['Suppress.'+SupressKey] := '1';
+end;
+
+procedure OptionalPrompt(const Title, Msg: string; const SupressKey: string); overload;
+begin
+  OptionalPrompt(Title, Msg, mtInformation, [mbOK], mbOK, SupressKey);
 end;
 
 // -----------------------------------------------------------------------------
@@ -1881,14 +1889,14 @@ begin
   if (ElegibleCount = 0) then
     Exit;
 
-  if (not IsOptionalPromptSuppressed('AddToDictionary')) then
+  if (not IsOptionalPromptSuppressed('DictionaryAdd')) then
   begin
     var ElegibleWarning: string := '';
     if (ElegibleCount < Count) then
       ElegibleWarning :=  #13#13 + Format(sAddToDictionaryEligibleWarning, [Count-ElegibleCount]);
 
     if (OptionalPrompt(sAddToDictionaryPromptTitle, Format(sAddToDictionaryPrompt, [ElegibleCount, ElegibleWarning]),
-      mtConfirmation, [mbYes, mbNo], mbYes, 'AddToDictionary') <> mrYes) then
+      mtConfirmation, [mbYes, mbNo], mbYes, 'DictionaryAdd') <> mrYes) then
       Exit;
   end;
 
@@ -1937,13 +1945,12 @@ begin
   if (DuplicateAction = tmDupActionAbort) and (ElegibleCount = 1) then
     Exit; // Nothing to report
 
-  if (not IsOptionalPromptSuppressed('AddToDictionaryStatus')) then
+  var Msg := Format(sTranslationMemoryMergeComplete, [Stats.Added * 1.0, Stats.Merged * 1.0, Stats.Skipped * 1.0, Stats.Duplicate * 1.0]);
+  if (not IsOptionalPromptSuppressed('DictionaryAddResult')) then
   begin
-    OptionalPrompt(sTranslationMemoryAddCompleteTitle,
-      Format(sTranslationMemoryMergeComplete, [Stats.Added * 1.0, Stats.Merged * 1.0, Stats.Skipped * 1.0, Stats.Duplicate * 1.0]),
-      mtInformation, [mbOK], mbOK, 'AddToDictionaryStatus');
+    OptionalPrompt(sTranslationMemoryAddCompleteTitle, Msg, 'DictionaryAddResult');
   end else
-    QueueToast(sTranslationMemoryAddCompleteTitle, True);
+    QueueToast(Msg, True);
 
 end;
 
@@ -2248,8 +2255,11 @@ begin
 
   RefreshModuleStats;
 
-  TaskMessageDlg(sTranslateAutoResultTitle, Format(sTranslateAutoResult, [Counts.TranslatedCount, Counts.UpdatedCount, Counts.ElegibleCount-Counts.TranslatedCount]),
-    mtInformation, [mbOK], 0);
+  var Msg := Format(sTranslateAutoResult, [Counts.TranslatedCount, Counts.UpdatedCount, Counts.ElegibleCount-Counts.TranslatedCount]);
+  if (not IsOptionalPromptSuppressed('AutoTranslateResult')) then
+    OptionalPrompt(sTranslateAutoResultTitle, Msg, 'AutoTranslateResult')
+  else
+    QueueToast(Msg, True);
 end;
 
 procedure TFormMain.ActionTranslationMemoryTranslateExecute(Sender: TObject);
@@ -2405,9 +2415,11 @@ begin
   if (DuplicateAction = tmDupActionAbort) and (ElegibleCount = 1) then
     Exit; // Nothing to report
 
-  TaskMessageDlg(sTranslationMemoryUpdateCompleteTitle,
-    Format(sTranslationMemoryMergeComplete, [Stats.Added * 1.0, Stats.Merged * 1.0, Stats.Skipped * 1.0, Stats.Duplicate * 1.0]),
-    mtInformation, [mbOK], 0);
+  var Msg := Format(sTranslationMemoryMergeComplete, [Stats.Added * 1.0, Stats.Merged * 1.0, Stats.Skipped * 1.0, Stats.Duplicate * 1.0]);
+  if (not IsOptionalPromptSuppressed('DictionaryUpdateResult')) then
+    OptionalPrompt(sTranslationMemoryUpdateCompleteTitle, Msg, 'DictionaryUpdateResult')
+  else
+    QueueToast(Msg, True);
 end;
 
 procedure TFormMain.ActionTranslationMemoryUpdateUpdate(Sender: TObject);
@@ -2456,7 +2468,7 @@ procedure TFormMain.QueueToast(const Msg: string; Blink: boolean);
 begin
   TimerToast.Enabled := False;
   FToastMessage := Msg;
-  StatusBar.Panels[StatusBarPanelHint].Text := FToastMessage;
+  StatusBar.Panels[StatusBarPanelHint].Text := ReplaceText(FToastMessage, #13, ' ');
   TdxStatusBarTextPanelStyle(StatusBar.Panels[StatusBarPanelHint].PanelStyle).ImageIndex := ImageIndexInfo;
   TimerToast.Enabled := True;
 
@@ -2893,7 +2905,7 @@ var
   Msg: string;
 resourcestring
   sSwitchSourceModuleTitle = 'Update project?';
-  sSwitchSourceModule = 'Do you want to alter the project to use this file as the source file?';
+  sSwitchSourceModule = 'Do you want to reconfigure the project to use this file as the source file?';
 begin
   SaveCursor(crAppStart); // Open dialog can take a while to appear
 
@@ -3800,7 +3812,11 @@ begin
 
   RefreshModuleStats;
 
-  TaskMessageDlg(sStopListResultTitle, Format(sStopListResult, [Stats.ModuleCount*1.0, Stats.PropertyCount*1.0]), mtInformation, [mbOK], 0);
+  var Msg := Format(sStopListResult, [Stats.ModuleCount*1.0, Stats.PropertyCount*1.0]);
+  if (not IsOptionalPromptSuppressed('StoplistApplyResult')) then
+    OptionalPrompt(sStopListResultTitle, Msg, 'StoplistApplyResult')
+  else
+    QueueToast(Msg, True);
 end;
 
 procedure TFormMain.ActionStopListApplyUpdate(Sender: TObject);
@@ -4610,7 +4626,10 @@ begin
     1.0*(CountBefore.CountItem-CountAfter.CountItem),
     1.0*(CountBefore.CountProperty-CountAfter.CountProperty)
     ]);
-  TaskMessageDlg(sPurgeZombieItemsStatusTitle, Msg, mtInformation, [mbOK], 0);
+  if (not IsOptionalPromptSuppressed('PurgeZombiesResult')) then
+    OptionalPrompt(sPurgeZombieItemsStatusTitle, Msg, 'PurgeZombiesResult')
+  else
+    QueueToast(Msg, True);
 end;
 
 procedure TFormMain.ActionProjectRecoverExecute(Sender: TObject);
@@ -6307,18 +6326,21 @@ begin
 
   Sep := Pos('|', s);
 
-  // Remove ImageIndex from BallonHint s string
+  // Remove ImageIndex from BallonHint hint text
   if (Sep <> 0) then
     s := Copy(s, 1, Sep-1);
 
-  DismissToast;
-  StatusBar.Panels[StatusBarPanelHint].Text := s;
+  StatusBar.Panels[StatusBarPanelHint].Text := ReplaceStr(s, #13, ' ');
   StatusBar.Update;
 end;
 
 procedure TFormMain.ShowHint(Sender: TObject);
 begin
-  SetInfoText(Application.Hint);
+  if (Application.Hint <> '') or (FToastMessage = '') then
+    SetInfoText(Application.Hint)
+  else
+    // Revert to toast message if there is any
+    SetInfoText(FToastMessage);
 end;
 
 procedure TFormMain.DoShowHint(var HintStr: string; var CanShow: Boolean; var HintInfo: THintInfo);
@@ -6365,6 +6387,26 @@ begin
   // See: DevPress ticket DS31900
   // http://www.devexpress.com/Support/Center/Question/Details/DS31900
   FStatusBarPanel := StatusBar.GetPanelAt(X, Y);
+end;
+
+type
+  TStatusBarCracker = class(TdxCustomStatusBar);
+  TAlertWindowCracker = class(TdxAlertWindow);
+
+procedure TFormMain.AlertWindowManagerBeforeShow(Sender: TObject; AAlertWindow: TdxAlertWindow);
+begin
+  var p := StatusBar.ClientToScreen(TStatusBarCracker(StatusBar).ViewInfo.PanelViewInfo[0].Bounds.TopLeft);
+  AAlertWindow.Left := p.X;
+  AAlertWindow.Top := p.Y - TAlertWindowCracker(AAlertWindow).Height;
+end;
+
+procedure TFormMain.StatusBarPanels0Click(Sender: TObject);
+begin
+  if (FToastMessage <> '') then
+  begin
+    AlertWindowManager.Show('', FToastMessage, ImageIndexInfo);
+    DismissToast;
+  end;
 end;
 
 procedure TFormMain.StatusBarPanels1Click(Sender: TObject);

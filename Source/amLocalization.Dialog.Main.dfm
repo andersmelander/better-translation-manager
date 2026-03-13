@@ -118,6 +118,7 @@ object FormMain: TFormMain
         PanelStyleClassName = 'TdxStatusBarTextPanelStyle'
         PanelStyle.AutoHint = True
         Fixed = False
+        OnClick = StatusBarPanels0Click
       end
       item
         PanelStyleClassName = 'TdxStatusBarTextPanelStyle'
@@ -2821,7 +2822,7 @@ object FormMain: TFormMain
   end
   object TimerToast: TTimer
     Enabled = False
-    Interval = 5000
+    Interval = 10000
     OnTimer = TimerToastTimer
     Left = 296
     Top = 224
@@ -2930,5 +2931,33 @@ object FormMain: TFormMain
     VerificationText = 'Only items without translations'
     Left = 716
     Top = 386
+  end
+  object AlertWindowManager: TdxAlertWindowManager
+    OptionsAnimate.AlphaBlendValue = 220
+    OptionsButtons.Buttons = <>
+    OptionsCaptionButtons.CaptionButtons = [awcbPin, awcbClose]
+    OptionsMessage.Caption.Font.Charset = DEFAULT_CHARSET
+    OptionsMessage.Caption.Font.Color = clWindowText
+    OptionsMessage.Caption.Font.Height = -13
+    OptionsMessage.Caption.Font.Name = 'Segoe UI'
+    OptionsMessage.Caption.Font.Style = [fsBold]
+    OptionsMessage.Images = DataModuleMain.ImageListSmall
+    OptionsMessage.Text.Font.Charset = DEFAULT_CHARSET
+    OptionsMessage.Text.Font.Color = clWindowText
+    OptionsMessage.Text.Font.Height = -12
+    OptionsMessage.Text.Font.Name = 'Segoe UI'
+    OptionsMessage.Text.Font.Style = []
+    OptionsNavigationPanel.Font.Charset = DEFAULT_CHARSET
+    OptionsNavigationPanel.Font.Color = clWindowText
+    OptionsNavigationPanel.Font.Height = -12
+    OptionsNavigationPanel.Font.Name = 'Segoe UI'
+    OptionsNavigationPanel.Font.Style = []
+    OptionsSize.AutoHeight = True
+    OptionsSize.AutoWidth = True
+    OptionsSize.AutoSizeAdjustment = True
+    OnBeforeShow = AlertWindowManagerBeforeShow
+    Left = 292
+    Top = 410
+    PixelsPerInch = 96
   end
 end

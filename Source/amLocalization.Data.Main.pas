@@ -169,6 +169,7 @@ const
   ImageIndexModified            = 44;
   ImageIndexNotModified         = -1;
   ImageIndexWarning             = 84;
+  ImageIndexCheck               = 67;
 
 const
   NodeImageIndexStateWarning    = 0;
