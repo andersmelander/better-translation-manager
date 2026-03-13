@@ -1203,16 +1203,13 @@ object FormMain: TFormMain
           ItemName = 'BarButtonAutoTranslate'
         end
         item
+          BeginGroup = True
           Visible = True
           ItemName = 'BarButtonTM'
         end
         item
           Visible = True
           ItemName = 'BarButtonTMAdd'
-        end
-        item
-          Visible = True
-          ItemName = 'BarButtonTMLookup'
         end
         item
           Visible = True
@@ -1534,10 +1531,15 @@ object FormMain: TFormMain
       ButtonStyle = bsDropDown
       DropDownMenu = PopupMenuTranslateProviders
       LargeImageIndex = 11
+      SyncImageIndex = False
+      ImageIndex = 91
     end
-    object BarButtonTM: TdxBarButton
+    object BarButtonTM: TdxBarLargeButton
       Action = ActionTranslationMemory
       Category = 0
+      LargeImageIndex = 19
+      SyncImageIndex = False
+      ImageIndex = 22
     end
     object BarButtonGotoNext: TdxBarSubItem
       Action = ActionGotoNext
@@ -1614,10 +1616,6 @@ object FormMain: TFormMain
     end
     object BarButtonTMAdd: TdxBarButton
       Action = ActionTranslationMemoryAdd
-      Category = 0
-    end
-    object BarButtonTMLookup: TdxBarButton
-      Action = ActionTranslationMemoryTranslate
       Category = 0
     end
     object dxBarButton25: TdxBarButton
@@ -2182,15 +2180,6 @@ object FormMain: TFormMain
       OnExecute = ActionTranslationMemoryAddExecute
       OnUpdate = ActionTranslationMemoryAddUpdate
     end
-    object ActionTranslationMemoryTranslate: TAction
-      Category = 'Automation'
-      Caption = 'Translate from TM'
-      Hint = 'Translate the selected items from Translation Memory'
-      ImageIndex = 25
-      ShortCut = 24660
-      OnExecute = ActionTranslationMemoryTranslateExecute
-      OnUpdate = ActionTranslationMemoryTranslateUpdate
-    end
     object ActionFindNext: TAction
       Category = 'Find'
       Caption = 'Find next'
@@ -2672,11 +2661,6 @@ object FormMain: TFormMain
       item
         Visible = True
         ItemName = 'ButtonItemBookmark'
-      end
-      item
-        BeginGroup = True
-        Visible = True
-        ItemName = 'BarButtonTMLookup'
       end
       item
         Visible = True

@@ -138,9 +138,9 @@ initialization
     begin
       Result := TTranslationProviderTranslationMemory.Create;
     end,
-    function(): boolean
+    function(): TCustomTranslationManagerProviderSettings
     begin
-      Result := TranslationManagerSettings.Providers.TranslationMemory.Enabled;
+      Result := TranslationManagerSettings.Providers.TranslationMemory;
     end);
 
 finalization

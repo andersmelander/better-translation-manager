@@ -17,11 +17,13 @@ type
   TCustomTranslationManagerProviderSettings = class(TConfigurationSection)
   private
     FEnabled: boolean;
+    FFavorite: boolean;
   protected
     procedure ApplyDefault; override;
   public
   published
     property Enabled: boolean read FEnabled write FEnabled default True;
+    property Favorite: boolean read FFavorite write FFavorite default False;
   end;
 
 implementation
@@ -32,6 +34,7 @@ procedure TCustomTranslationManagerProviderSettings.ApplyDefault;
 begin
   inherited;
   FEnabled := True;
+  FFavorite := False;
 end;
 
 end.

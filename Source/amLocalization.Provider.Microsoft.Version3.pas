@@ -210,9 +210,9 @@ initialization
     begin
       Result := TTranslationProviderMicrosoftV3.Create(nil);
     end,
-    function(): boolean
+    function(): TCustomTranslationManagerProviderSettings
     begin
-      Result := TranslationManagerSettings.Providers.MicrosoftTranslatorV3.Enabled;
+      Result := TranslationManagerSettings.Providers.MicrosoftTranslatorV3;
     end);
 
 finalization

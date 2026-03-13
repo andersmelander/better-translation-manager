@@ -177,7 +177,7 @@ type
     TreeListColumnModuleStatus: TcxTreeListColumn;
     BarManagerBarMachineTranslation: TdxBar;
     BarButtonAutoTranslate: TdxBarLargeButton;
-    BarButtonTM: TdxBarButton;
+    BarButtonTM: TdxBarLargeButton;
     BarButtonGotoNext: TdxBarSubItem;
     ActionMain: TAction;
     ActionGotoNextUntranslated: TAction;
@@ -194,7 +194,6 @@ type
     dxBarButton21: TdxBarButton;
     dxBarButton22: TdxBarButton;
     BarButtonTMAdd: TdxBarButton;
-    BarButtonTMLookup: TdxBarButton;
     LayoutControlMainGroup_Root: TdxLayoutGroup;
     LayoutControlMain: TdxLayoutControl;
     dxLayoutItem2: TdxLayoutItem;
@@ -204,7 +203,6 @@ type
     ActionAutomationTranslate: TAction;
     ActionTranslationMemory: TAction;
     ActionTranslationMemoryAdd: TAction;
-    ActionTranslationMemoryTranslate: TAction;
     dxBarButton25: TdxBarButton;
     ActionFindNext: TAction;
     dxBarButton26: TdxBarButton;
@@ -443,10 +441,8 @@ type
     procedure ActionValidateExecute(Sender: TObject);
     procedure ActionTranslationMemoryAddExecute(Sender: TObject);
     procedure ActionHasActivePropertyUpdate(Sender: TObject);
-    procedure ActionTranslationMemoryTranslateExecute(Sender: TObject);
     procedure ActionGotoNextStatusExecute(Sender: TObject);
     procedure ActionGotoNextStateNewExecute(Sender: TObject);
-    procedure ActionTranslationMemoryTranslateUpdate(Sender: TObject);
     procedure ActionTranslationMemoryAddUpdate(Sender: TObject);
     procedure ButtonOpenRecentClick(Sender: TObject);
     procedure ActionSettingsExecute(Sender: TObject);
@@ -1354,7 +1350,6 @@ begin
 
         ActionTranslationMemory.Visible := TranslationManagerSettings.Providers.TranslationMemory.Enabled;
         ActionTranslationMemoryAdd.Visible := TranslationManagerSettings.Providers.TranslationMemory.Enabled;
-        ActionTranslationMemoryTranslate.Visible := TranslationManagerSettings.Providers.TranslationMemory.Enabled;
         ActionTranslationMemoryLocate.Visible := TranslationManagerSettings.Providers.TranslationMemory.Enabled;
         ActionTranslationMemoryUpdate.Visible := TranslationManagerSettings.Providers.TranslationMemory.Enabled;
       end;
@@ -2177,27 +2172,6 @@ begin
     mtInformation, [mbOK], 0);
 end;
 
-procedure TFormMain.ActionTranslationMemoryTranslateExecute(Sender: TObject);
-var
-  TranslationProvider: ITranslationProvider;
-  TranslationService: ITranslationService;
-begin
-  TranslationProvider := FTranslationMemory as ITranslationProvider;
-  TranslationService := CreateTranslationService(TranslationProvider);
-
-  TranslateSelected(TranslationService, TranslationProvider);
-end;
-
-procedure TFormMain.ActionTranslationMemoryTranslateUpdate(Sender: TObject);
-var
-  Item: TCustomLocalizerItem;
-begin
-  Item := FocusedItem;
-
-  TAction(Sender).Enabled := (Item <> nil) and (not Item.IsUnused) and (Item.EffectiveStatus <> ItemStatusDontTranslate) and
-    (SourceLanguage <> TargetLanguage) and (FTranslationMemory.IsAvailable);
-end;
-
 procedure TFormMain.ActionTranslationMemoryUpdateExecute(Sender: TObject);
 var
   ElegibleWarning: string;
@@ -2650,6 +2624,11 @@ begin
     TdxBarButton(ItemLink.Item).Tag := Provider.Handle;
     TdxBarButton(ItemLink.Item).OnClick := OnTranslationProviderHandler;
     ItemLink.Item.Enabled := Provider.Enabled;
+    if (Provider.Favorite) then
+    begin
+      TdxBarButton(ItemLink.Item).ImageIndex := ImageIndexFavorite;
+      TdxBarButton(ItemLink.Item).ShortCut := ShortCut(Ord('T'), [ssCtrl, ssShift]);
+    end;
   end;
 end;
 
@@ -7027,7 +7006,12 @@ begin
   GridItemsTableView.Controller.ClearSelection;
   HitTest.GridRecord.Selected := True;
 
-  ActionTranslationMemoryTranslate.Execute;
+  begin
+    var TranslationProvider := FTranslationMemory as ITranslationProvider;
+    var TranslationService := CreateTranslationService(TranslationProvider);
+
+    TranslateSelected(TranslationService, TranslationProvider);
+  end;
 end;
 
 procedure TFormMain.GridItemsTableViewMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
