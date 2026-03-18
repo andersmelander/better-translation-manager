@@ -83,6 +83,7 @@ uses
   amLocalization.Portable in 'amLocalization.Portable.pas',
   amLocalization.Index in 'amLocalization.Index.pas',
   amLocalization.Export.CSV in 'amLocalization.Export.CSV.pas',
+  amLocalization.Export.XLIFF in 'amLocalization.Export.XLIFF.pas',
   amLocalization.Import.PO in 'amLocalization.Import.PO.pas',
   amLocalization.System.Restart in 'amLocalization.System.Restart.pas',
   amLocalization.Normalization in 'amLocalization.Normalization.pas',

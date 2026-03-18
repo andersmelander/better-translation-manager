@@ -18,6 +18,7 @@ resourcestring
   sFileTextFilter = 'Text files (*.txt)|*.txt';
   sFileFilterCSV = 'CSV files (*.csv)|*.csv';
   sFileFilterPO = 'GNU GetText PO files (*.po)|*.po';
+  sFileFilterXLIFF = 'XLIFF files (*.xliff;*.xlf)|*.xliff;*.xlf';
 
 implementation
 

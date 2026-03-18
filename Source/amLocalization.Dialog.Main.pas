@@ -380,6 +380,8 @@ type
     TaskDialogPurge: TTaskDialog;
     TaskDialogPurgeSelected: TTaskDialog;
     AlertWindowManager: TdxAlertWindowManager;
+    ButtonExportXLIFF: TdxBarButton;
+    ActionExportXLIFF: TAction;
     procedure FormCreate(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure ActionProjectUpdateExecute(Sender: TObject);
@@ -555,6 +557,7 @@ type
     procedure ActionTranslationMemoryIsEnabled(Sender: TObject);
     procedure StatusBarPanels0Click(Sender: TObject);
     procedure AlertWindowManagerBeforeShow(Sender: TObject; AAlertWindow: TdxAlertWindow);
+    procedure ActionExportXLIFFExecute(Sender: TObject);
   private
     FProject: TLocalizerProject;
     FProjectFilename: string;
@@ -886,6 +889,7 @@ uses
   amLocalization.Environment,
   amLocalization.Common,
   amLocalization.Export.CSV,
+  amLocalization.Export.XLIFF,
   amLocalization.Import.PO,
   amLocalization.Settings.SpellChecker,
   amLocalization.Settings.Layout.Tree,
@@ -3412,6 +3416,44 @@ begin
     end;
   finally
     Writer.Free;
+  end;
+end;
+
+procedure TFormMain.ActionExportXLIFFExecute(Sender: TObject);
+var
+  Filename: string;
+begin
+  if (FProjectFilename <> '') then
+    Filename := FProjectFilename
+  else
+    Filename := FProject.SourceFilename;
+
+  Filename := TPath.ChangeExtension(TPath.GetFileName(Filename), '.xliff');
+
+  if (not PromptForFileName(Filename, sFileFilterXLIFF, 'xliff', '', TranslationManagerSettings.Folders.FolderDocuments, True)) then
+    Exit;
+
+  var FilePath := TPath.GetDirectoryName(Filename);
+  var FileType := TPath.GetExtension(Filename);
+  Filename := TPath.GetFileNameWithoutExtension(Filename);
+
+  for var TargetLanguage in FProject.TranslationLanguages do
+  begin
+    var LanguageFilename := TPath.Combine(FilePath, Format('%s (%s)%s', [Filename, TargetLanguage.Language.LocaleName, FileType]));
+
+    var Writer := TStreamWriter.Create(LanguageFilename, False, TEncoding.UTF8);
+    try
+      var XLIFFWriter := TLocalizerXliffWriter.Create(Writer, TargetLanguage);
+      try
+
+        XLIFFWriter.Write(FProject);
+
+      finally
+        XLIFFWriter.Free;
+      end;
+    finally
+      Writer.Free;
+    end;
   end;
 end;
 

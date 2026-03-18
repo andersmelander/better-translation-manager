@@ -237,6 +237,7 @@
         <DCCReference Include="amLocalization.Portable.pas"/>
         <DCCReference Include="amLocalization.Index.pas"/>
         <DCCReference Include="amLocalization.Export.CSV.pas"/>
+        <DCCReference Include="amLocalization.Export.XLIFF.pas"/>
         <DCCReference Include="amLocalization.Import.PO.pas"/>
         <DCCReference Include="amLocalization.System.Restart.pas"/>
         <DCCReference Include="amLocalization.Normalization.pas"/>

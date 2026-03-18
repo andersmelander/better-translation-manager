@@ -1242,6 +1242,10 @@ object FormMain: TFormMain
         end
         item
           Visible = True
+          ItemName = 'ButtonExportXLIFF'
+        end
+        item
+          Visible = True
           ItemName = 'dxBarButton20'
         end>
       OneOnRow = False
@@ -1922,6 +1926,10 @@ object FormMain: TFormMain
       Action = ActionGotoNextStateObsolete
       Category = 0
     end
+    object ButtonExportXLIFF: TdxBarButton
+      Action = ActionExportXLIFF
+      Category = 0
+    end
   end
   object OpenDialogXLIFF: TOpenDialog
     Filter = 
@@ -2596,6 +2604,17 @@ object FormMain: TFormMain
       Caption = 'Obsolete'
       ImageIndex = 88
       OnExecute = ActionGotoNextStateObsoleteExecute
+    end
+    object ActionExportXLIFF: TAction
+      Category = 'Import'
+      Caption = 'Save to XLIFF...'
+      Hint = 
+        'Export the entire project to a XLIFF file'#13#10'XLIFF is a standard f' +
+        'ile format used to exchange data between Computer-Assisted Trans' +
+        'lation tools.'
+      ImageIndex = 64
+      OnExecute = ActionExportXLIFFExecute
+      OnUpdate = ActionHasProjectUpdate
     end
   end
   object OpenDialogProject: TOpenDialog
