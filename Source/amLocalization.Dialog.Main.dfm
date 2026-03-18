@@ -2020,8 +2020,10 @@ object FormMain: TFormMain
       Category = 'Import'
       Caption = 'Import XLIFF...'
       Hint = 
-        'Import translations from XLIFF file (used by Delphi amongst othe' +
-        'rs)'
+        'Import translations from XLIFF file'#13#10'XLIFF is a standard file fo' +
+        'rmat used to exchange data between Computer-Assisted Translation' +
+        ' tools.'#13#10'The old XLIFF 1.0 format used by the legacy Delphi tran' +
+        'slation tools are also supported.'
       ImageIndex = 77
       OnExecute = ActionImportXLIFFExecute
       OnUpdate = ActionHasProjectUpdate

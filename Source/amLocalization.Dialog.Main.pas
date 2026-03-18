@@ -3896,9 +3896,9 @@ end;
 // -----------------------------------------------------------------------------
 
 procedure TFormMain.ActionImportXLIFFExecute(Sender: TObject);
-var
-  Importer: TModuleImporterXLIFF;
-  Stats: TTranslationCounts;
+resourcestring
+  sProgressImporting = 'Importing...';
+  sErrorLoadingXLIFFTitle = 'Error importing from XLIFF';
 begin
   if (not OpenDialogXLIFF.Execute(Handle)) then
     exit;
@@ -3907,21 +3907,25 @@ begin
 
   SaveCursor(crHourGlass);
 
-  Importer := TModuleImporterXLIFF.Create;
+  var Importer: XLIFF_Importer;
   try
 
-    Importer.LoadFromFile(FProject, OpenDialogXLIFF.FileName);
+    var Progress := ShowProgress(sProgressImporting);
 
-    Stats := Importer.TranslationCounts;
+    Importer.LoadFromFile(FProject, OpenDialogXLIFF.FileName, Progress);
 
-  finally
-    Importer.Free;
+  except
+    on E: EXLIFFImport do
+    begin
+      TaskMessageDlg(sErrorLoadingXLIFFTitle, E.Message, mtWarning, [mbOK], 0);
+      Exit;
+    end;
   end;
 
   LoadProject(FProject, False);
 
   TaskMessageDlg(sTranslationsUpdatedTitle,
-    Format(sTranslationsUpdated, [1.0 * Stats.CountAdded, 1.0 * Stats.CountUpdated, 1.0 * Stats.CountSkipped]),
+    Format(sTranslationsUpdated, [1.0 * Importer.TranslationCount.CountAdded, 1.0 * Importer.TranslationCount.CountUpdated, 1.0 * Importer.TranslationCount.CountSkipped]),
     mtInformation, [mbOK], 0);
 end;
 

@@ -68,7 +68,8 @@ implementation
 
 uses
   System.SysUtils,
-  amLanguageInfo;
+  amLanguageInfo,
+  amLocalization.Import.XLIFF;
 
 constructor TLocalizerXLIFFWriter.Create(AWriter: TTextWriter; ALanguage: TTranslationLanguage);
 begin
@@ -237,16 +238,16 @@ begin
     TranslateAttr := '';
 
   // <unit id> must be unique within <file>.
-  // For properties, we use Use Item.Name+Prop.Name to make it so.
-  // For resourcestrings, we use a unique integer ID.
+  // For properties, we use use Item.Name and Prop.Name, separated by a '.', to make it so.
+  // For resourcestrings, we use Item.Name and a unique integer ID, separated by a '.'.
+  var ItemName := NMToken(AProp.Item.Name);
   var UnitID: string;
   if (AProp.Item.Module.Kind = mkString) then
   begin
-    UnitID := IntToStr(Index);
+    UnitID := ItemName + '.' + IntToStr(Index);
     Inc(Index);
   end else
   begin
-    var ItemName := NMToken(AProp.Item.Name);
     var PropName := NMToken(AProp.Name);
     UnitID := ItemName + '.' + PropName;
   end;

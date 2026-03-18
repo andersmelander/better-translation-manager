@@ -1,7 +1,7 @@
 ﻿unit amLocalization.Import.XLIFF;
 
 (*
- * Copyright © 2019 Anders Melander
+ * Copyright © 2019-2026 Anders Melander
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -17,34 +17,49 @@ interface
 
 uses
   Classes,
+  SysUtils,
+  amProgress.API,
   amLocalization.Model,
   amLocalization.Engine;
 
+type
+  EXLIFFImport = class(Exception);
+
 // -----------------------------------------------------------------------------
 //
-// TModuleImporterXLIFF
+// XLIFF_Importer
 //
 // -----------------------------------------------------------------------------
 type
-  TModuleImporterXLIFF = class
-  private type
+  XLIFF_Importer = record
+  public type
     TSkipReason = (
-      skipUnchanged,      // Translation is unchanged
-      skipNotFound       // Property not found
+      skipUnchanged,    // Translation is unchanged
+      skipNotFound      // Property not found
     );
     TSkipCounts = array[TSkipReason] of integer;
-  private
-    FTranslationCount: TTranslationCounts;
-    FSkipCounts: TSkipCounts;
-  protected
+
   public
-    class constructor Create;
+    function LoadFromStream(Project: TLocalizerProject; Stream: TStream; const FileName: string = ''; const Progress: IProgress = nil): boolean;
+    function LoadFromFile(Project: TLocalizerProject; const Filename: string; const Progress: IProgress = nil): boolean;
 
-    function LoadFromStream(Project: TLocalizerProject; Stream: TStream; const FileName: string = ''): TLocalizerModule; overload;
-    function LoadFromFile(Project: TLocalizerProject; const Filename: string): TLocalizerModule; overload;
+  public
+    TranslationCount: TTranslationCounts;
+    SkipCounts: TSkipCounts;
+  end;
 
-    property TranslationCounts: TTranslationCounts read FTranslationCount;
-    property SkipCounts: TSkipCounts read FSkipCounts;
+
+// -----------------------------------------------------------------------------
+//
+// Work around for XML's braindead CR/LF rules
+//
+// -----------------------------------------------------------------------------
+type
+  SetOfChar = set of AnsiChar;
+
+  XLIFF_Encoding = record
+    class function Escape(const s: string; Quote: boolean = False; DontEscape: SetOfChar = []; ForceUnicode: boolean = False): string; static;
+    class function Unescape(const Value: string): string; static;
   end;
 
 
@@ -59,7 +74,6 @@ uses
   IOUtils,
   Variants,
   Windows,
-  SysUtils,
   Dialogs,
   Controls,
   msxmldom,
@@ -68,28 +82,77 @@ uses
   amDialog.Manager.API,
   amLocalization.Dialog.SelectModule.API;
 
+type
+  PXLIFF_Importer = ^XLIFF_Importer;
+
 // -----------------------------------------------------------------------------
 //
 // TModuleImporterXLIFF
 //
 // -----------------------------------------------------------------------------
+// Abstract XLIFF importer.
+// Reads XLIFF from an XML document.
+// -----------------------------------------------------------------------------
+type
+  TModuleImporterXLIFF = class abstract
+  private
+    class constructor Create;
+
+  protected
+    FImporter: PXLIFF_Importer;
+    property Importer: PXLIFF_Importer read FImporter;
+
+  protected
+
+  public
+    constructor Create(AImporter: PXLIFF_Importer);
+
+    function LoadFromDocument(Project: TLocalizerProject; XML: IXMLDocument; const FileName: string = ''; const Progress: IProgress = nil): boolean; virtual; abstract;
+  end;
+
 class constructor TModuleImporterXLIFF.Create;
 begin
   // Can't remember why this was necessary
   msxmldom.MSXMLDOMDocumentFactory.AddDOMProperty('ProhibitDTD', False);
 end;
 
-function TModuleImporterXLIFF.LoadFromFile(Project: TLocalizerProject; const Filename: string): TLocalizerModule;
-var
-  Stream: TStream;
+constructor TModuleImporterXLIFF.Create(AImporter: PXLIFF_Importer);
 begin
-  Stream := TFileStream.Create(Filename, fmOpenRead or fmShareDenyWrite);
-  try
-    Result := LoadFromStream(Project, Stream, Filename);
-  finally
-    Stream.Free;
-  end;
+  inherited Create;
+  FImporter := AImporter;
 end;
+
+
+// -----------------------------------------------------------------------------
+//
+// TModuleImporterXLIFF1
+//
+// -----------------------------------------------------------------------------
+// XLIFF version 1.0 importer.
+// Basically hardcoded to only handle Delphi's legacy ETM XLIFF format.
+// -----------------------------------------------------------------------------
+type
+  TModuleImporterXLIFF1 = class(TModuleImporterXLIFF)
+  public
+    function LoadFromDocument(Project: TLocalizerProject; XML: IXMLDocument; const FileName: string = ''; const Progress: IProgress = nil): boolean; override;
+  end;
+
+
+// -----------------------------------------------------------------------------
+//
+// TModuleImporterXLIFF2
+//
+// -----------------------------------------------------------------------------
+// XLIFF version 2.0 importer.
+// Not a generic XLIFF importer; Just handles the format written by
+// TLocalizerXLIFFWriter.
+// -----------------------------------------------------------------------------
+type
+  TModuleImporterXLIFF2 = class(TModuleImporterXLIFF)
+  public
+    function LoadFromDocument(Project: TLocalizerProject; XML: IXMLDocument; const FileName: string = ''; const Progress: IProgress = nil): boolean; override;
+  end;
+
 
 // -----------------------------------------------------------------------------
 
@@ -138,10 +201,7 @@ end;
 const
   UnicodePrefix = 'L';
 
-type
-  SetOfChar = set of AnsiChar;
-
-function Escape(const s: string; Quote: boolean = False; DontEscape: SetOfChar = []; ForceUnicode: boolean = False): string;
+class function XLIFF_Encoding.Escape(const s: string; Quote: boolean = False; DontEscape: SetOfChar = []; ForceUnicode: boolean = False): string;
 var
   i: integer;
   IsUnicode: boolean;
@@ -179,7 +239,9 @@ begin
       0: Chunk := '\0';
       8: Chunk := '\a'; // Not standard
       9: Chunk := '\t';
+      (* No need to escape LF; All line breaks, regardless of type, are normalized to LF in XML - which is why we are forced to escape CR and jump through all these hoops.
       10: Chunk := '\n';
+      *)
       13: Chunk := '\r';
       34: Chunk := '""'; // "
       92: Chunk := '\\'; // \
@@ -205,7 +267,7 @@ begin
     Result := Result + '"';
 end;
 
-function Unescape(const Value: string): string;
+class function XLIFF_Encoding.Unescape(const Value: string): string;
 var
   p: PChar;
   LastChar: char;
@@ -304,23 +366,28 @@ begin
   end;
 end;
 
-function TModuleImporterXLIFF.LoadFromStream(Project: TLocalizerProject; Stream: TStream; const FileName: string): TLocalizerModule;
+
+// -----------------------------------------------------------------------------
+//
+// TModuleImporterXLIFF1
+//
+// -----------------------------------------------------------------------------
+function TModuleImporterXLIFF1.LoadFromDocument(Project: TLocalizerProject; XML: IXMLDocument; const FileName: string; const Progress: IProgress): boolean;
 type
   TImportDelegate = reference to function(Module: TLocalizerModule; const ItemName, ItemType, PropertyName, SourceValue: string; var Prop: TLocalizerProperty): boolean;
+
 var
   TranslationLanguage: TTranslationLanguage;
 
-  procedure Skip(Reason: TSkipReason);
+  procedure Skip(Reason: XLIFF_Importer.TSkipReason);
   begin
-    Inc(FSkipCounts[Reason]);
-    Inc(FTranslationCount.CountSkipped);
+    Inc(Importer.SkipCounts[Reason]);
+    Inc(Importer.TranslationCount.CountSkipped);
   end;
 
   function ProcessNodes(const BodyNode: IXMLNode; Module: TLocalizerModule; Delegate: TImportDelegate): boolean;
 
     function GetNodeText(const Node: IXMLNode): string;
-    var
-      ChildNode: IXMLNode;
     begin
       // Contrary to the documented behavior, Node.IsTextElement returns False
       // if the node is a text node...
@@ -329,7 +396,7 @@ var
 
       Result := '';
 
-      ChildNode := Node.ChildNodes.First;
+      var ChildNode := Node.ChildNodes.First;
       while (ChildNode <> nil) do
       begin
         Result := Result + GetNodeText(ChildNode);
@@ -338,15 +405,8 @@ var
     end;
 
   var
-    Node, NextNode: IXMLNode;
-    Child: IXMLNode;
-    TargetNode: IXMLNode;
-    PropChild, NextPropChild: IXMLNode;
+//    TranslationStatus: TETMTranslationStatus;
 
-    Localize: boolean;
-    TranslationStatus: TETMTranslationStatus;
-
-    s: string;
     i: integer;
     Value: string;
 
@@ -357,19 +417,21 @@ var
     Translation: TLocalizerTranslation;
   begin
     Result := True;
-    Node := BodyNode.ChildNodes.First;
+    var Node := BodyNode.ChildNodes.First;
 
     while (Node <> nil) do
     begin
-      Localize := True;
+      var Localize := True;
+
       if (Node.NodeName = 'trans-unit') then
       begin
-        TranslationStatus := tsUnknown;
+        var TranslationStatus: TETMTranslationStatus := tsUnknown;
+        var TargetNode: IXMLNode := nil;
 
         if (Node.Attributes['translate'] = 'no') then
           Localize := False;
 
-        s := VarToStr(Node.Attributes['resname']);
+        var s := VarToStr(Node.Attributes['resname']);
         if (s = '') then
           s := VarToStr(Node.Attributes['id']);
         if (s <> '') then
@@ -412,7 +474,7 @@ var
           ItemType := '';
 
           // Get Source value
-          Child := Node.ChildNodes.FindNode('source');
+          var Child := Node.ChildNodes.FindNode('source');
           if (Child <> nil) then
           begin
             s := GetNodeText(Child);
@@ -427,7 +489,7 @@ var
             end;
 {$endif QUOTED_STRINGS}
 
-            SourceValue := Unescape(s);
+            SourceValue := XLIFF_Encoding.Unescape(s);
           end else
             SourceValue := '';
 
@@ -437,7 +499,7 @@ var
           if (TargetNode <> nil) then
           begin
             s := GetNodeText(TargetNode);
-            TargetValue := Unescape(s);
+            TargetValue := XLIFF_Encoding.Unescape(s);
 
             Value := TargetNode.Attributes['state'];
             if (Value = 'final') then
@@ -469,10 +531,10 @@ var
 
           if (Child <> nil) then
           begin
-            PropChild := Child.ChildNodes.First;
+            var PropChild := Child.ChildNodes.First;
             while (PropChild <> nil) do
             begin
-              NextPropChild := PropChild.NextSibling;
+              var NextPropChild := PropChild.NextSibling;
               Value := PropChild.Attributes['prop-type'];
               if (Value = 'Type') then
               begin
@@ -580,13 +642,13 @@ var
                   if (Translation.Value <> TargetValue) or (Translation.Status <> NewStatus) then
                   begin
                     Translation.Update(TargetValue, NewStatus);
-                    Inc(FTranslationCount.CountUpdated);
+                    Inc(Importer.TranslationCount.CountUpdated);
                   end else
                     Skip(skipUnchanged);
                 end else
                 begin
                   Prop.Translations.AddOrUpdateTranslation(TranslationLanguage, TargetValue, NewStatus);
-                  Inc(FTranslationCount.CountAdded);
+                  Inc(Importer.TranslationCount.CountAdded);
                 end;
               end;
             end else
@@ -595,7 +657,7 @@ var
         end;
       end;
 
-      NextNode := Node.NextSibling;
+      var NextNode := Node.NextSibling;
 
       Node := NextNode;
     end;
@@ -630,7 +692,6 @@ var
   ModuleName: string;
   ModuleKind: TLocalizerModuleKind;
   SourceFilename: string;
-  XML: IXMLDocument;
   Header: IXMLNode;
   Body: IXMLNode;
   Node: IXMLNode;
@@ -643,49 +704,51 @@ resourcestring
     'Project source language: %s'#13+
     'Import source language: %s';
 begin
-  XML := TXMLDocument.Create(nil);
-  XML.Options := [doNodeAutoIndent];
-  XML.Active := True;
-
-  XML.LoadFromStream(Stream);
-
-  if (XML.DocumentElement.NodeName <> 'xliff') then
-    raise Exception.CreateFmt('XML document root node is not named "xliff": %s', [XML.DocumentElement.NodeName]);
+  Result := False;
 
   Node := XML.DocumentElement.ChildNodes.FindNode('file');
   if (Node = nil) then
-    raise Exception.Create('xliff node not found: xliff\file');
+    raise EXLIFFImport.Create('xliff node not found: xliff\file');
 
   SourceLanguageName := Node.Attributes['source-language'];
   TargetLanguageName := Node.Attributes['target-language'];
+
 
   // Translate Language Name to Locale ID
   var SourceLanguageItem := LanguageInfo.FindLocaleName(SourceLanguageName);
   if (SourceLanguageItem = nil) then
     SourceLanguageItem := LanguageInfo.FindISO3166Name(SourceLanguageName);
+
   if (SourceLanguageItem = nil) then
     SourceLanguageItem := LanguageInfo.FindLanguageShortName(SourceLanguageName);
+
   if (SourceLanguageItem = nil) then
     SourceLanguageItem := LanguageInfo.FindLanguageName(SourceLanguageName);
+
   if (SourceLanguageItem = nil) then
     SourceLanguageItem := LanguageInfo.FindCountry(SourceLanguageName);
 
   if (SourceLanguageItem = nil) then
-    raise Exception.CreateFmt('Unknown source language: %s', [SourceLanguageName]);
+    raise EXLIFFImport.CreateFmt('Unknown source language: %s', [SourceLanguageName]);
+
 
   // Translate Language Name to Locale ID
   var TargetLanguageItem := LanguageInfo.FindLocaleName(TargetLanguageName);
   if (TargetLanguageItem = nil) then
     TargetLanguageItem := LanguageInfo.FindISO3166Name(TargetLanguageName);
+
   if (TargetLanguageItem = nil) then
     TargetLanguageItem := LanguageInfo.FindLanguageShortName(TargetLanguageName);
+
   if (TargetLanguageItem = nil) then
     TargetLanguageItem := LanguageInfo.FindLanguageName(TargetLanguageName);
+
   if (TargetLanguageItem = nil) then
     TargetLanguageItem := LanguageInfo.FindCountry(TargetLanguageName);
 
   if (TargetLanguageItem = nil) then
-    raise Exception.CreateFmt('Unknown target language: %s', [TargetLanguageName]);
+    raise EXLIFFImport.CreateFmt('Unknown target language: %s', [TargetLanguageName]);
+
 
   // Verify that module source language matches project
   if (SourceLanguageItem.LocaleName <> Project.SourceLanguage.LocaleName) then
@@ -693,8 +756,9 @@ begin
     if (TaskMessageDlg(sXLIFFLanguageMismatchTitle,
       Format(sXLIFFLanguageMismatch, [Project.SourceLanguage.LanguageName, SourceLanguageItem.LanguageName]),
       mtWarning, [mbIgnore, mbAbort], 0, mbAbort) = mrAbort) then
-      Exit(nil);
+      exit;
   end;
+
 
   SourceFilename := Node.Attributes['original'];
   if (SourceFilename = '') then
@@ -723,45 +787,44 @@ begin
 
   Body := Node.ChildNodes.FindNode('body');
   if (Body = nil) then
-    raise Exception.Create('xliff node not found: xliff\file\body');
+    raise EXLIFFImport.Create('xliff node not found: xliff\file\body');
 
   // If the XLIFF doesn't specify the module name (Delphi doesn't store the
   // name for DFM XLIFFs) then we will have to search for a match between
   // the items in the XLIFF and the existing items in the project.
   // Another possibility would be to parse the item names and deduce the
   // module name from that.
+  var Module: TLocalizerModule;
   if (ModuleName = '') then
   begin
     Assert(ModuleKind = mkForm);
-    Result := FindModule(Body);
+    Module := FindModule(Body);
 
     // If we still haven't got a module name then we must ask the user for it.
-    if  (Result = nil) then
+    if  (Module = nil) then
     begin
       var DialogSelectModule := DialogManager.CreateDialog(IDialogSelectModule) as IDialogSelectModule;
-      Result := DialogSelectModule.Execute(Project, sXLIFFMissingModuleName, sXLIFFMissingModuleNamePrompt);
-      if (Result = nil) then
-        Exit(nil);
+      Module := DialogSelectModule.Execute(Project, sXLIFFMissingModuleName, sXLIFFMissingModuleNamePrompt);
+      if (Module = nil) then
+        exit;
     end;
   end else
-    Result := Project.AddModule(ModuleName);
+    Module := Project.AddModule(ModuleName);
 
-  if (Result.Kind = mkOther) then
-    Result.Kind := ModuleKind;
+  if (Module.Kind = mkOther) then
+    Module.Kind := ModuleKind;
 
-  TranslationLanguage := Result.Project.TranslationLanguages.Add(TargetLanguageItem);
-
-  FillChar(FTranslationCount, SizeOf(FTranslationCount), 0);
+  TranslationLanguage := Module.Project.TranslationLanguages.Add(TargetLanguageItem);
 
   Project.BeginUpdate;
   try
 
-    ProcessNodes(Body, Result,
-      function(Module: TLocalizerModule; const ItemName, ItemType, PropertyName, SourceValue: string; var Prop: TLocalizerProperty): boolean
+    ProcessNodes(Body, Module,
+      function(AModule: TLocalizerModule; const ItemName, ItemType, PropertyName, SourceValue: string; var Prop: TLocalizerProperty): boolean
       var
         Item: TLocalizerItem;
       begin
-        Item := Module.FindItem(ItemName, True);
+        Item := AModule.FindItem(ItemName, True);
         if (Item <> nil) then
           Prop := Item.FindProperty(PropertyName, True)
         else
@@ -773,7 +836,292 @@ begin
   finally
     Project.EndUpdate;
   end;
+
+  Result := True;
 end;
+
+
+// -----------------------------------------------------------------------------
+//
+// TModuleImporterXLIFF2
+//
+// -----------------------------------------------------------------------------
+function TModuleImporterXLIFF2.LoadFromDocument(Project: TLocalizerProject; XML: IXMLDocument; const FileName: string; const Progress: IProgress): boolean;
+var
+  TranslationLanguage: TTranslationLanguage;
+
+  procedure Skip(Reason: XLIFF_Importer.TSkipReason);
+  begin
+    Inc(Importer.SkipCounts[Reason]);
+    Inc(Importer.TranslationCount.CountSkipped);
+  end;
+
+  function NMTokenToIdent(const Value: string): string;
+  begin
+    Result := Value;
+
+    // :n: -> [n]
+    var n := Pos(':', Result);
+    while (n <> 0) do
+    begin
+      Result[n] := '[';
+      n := Pos(':', Result, n);
+      if (n = 0) then
+        raise EXLIFFImport.CreateFmt('Unbalanced : in "%s"', [Value]);
+      Result[n] := ']';
+      n := Pos(':', Result, n);
+    end;
+  end;
+
+  procedure RepairLinebreaks(const OriginalValue: string; var MangledValue: string);
+  begin
+    if (Pos(#13, OriginalValue) = 0) then
+      exit;
+
+    // Original value contains #13 but round-tripped value doesn't; Assume that
+    // XML parser replaced #13 with #10.
+    //
+    // - If original contains #13#10 then we replace #10 with #13#10, otherwise
+    //   we replace #10 with #13.
+    //
+    // - If original contains #10 but not #13#10 then we are out of luck and
+    //   have to assume that it contains mixed style line breaks, which we
+    //   can't recover.
+
+    if (Pos(#13#10, OriginalValue) <> 0) then
+      MangledValue := MangledValue.Replace(#10, #13#10)
+    else
+    if (Pos(#10, OriginalValue) = 0) then
+      MangledValue := MangledValue.Replace(#10, #13);
+  end;
+
+  procedure ProcessUnit(const UnitNode: IXMLNode; Module: TLocalizerModule);
+  var
+    ItemName, PropertyName: string;
+    Translation: TLocalizerTranslation;
+    NewStatus: TTranslationStatus;
+  begin
+    var UnitID := VarToStr(UnitNode.Attributes['id']);
+    if (UnitID = '') then
+      exit;
+
+    // Split ID into Item.Name and Property.Name
+    var i := UnitID.LastIndexOf('.');
+    if (i > 0) then
+    begin
+      ItemName := UnitID.Substring(0, i);
+      PropertyName := UnitID.Substring(i + 1);
+      PropertyName := NMTokenToIdent(PropertyName);
+    end else
+    begin
+      ItemName := UnitID;
+      PropertyName := '';
+    end;
+
+    ItemName := NMTokenToIdent(ItemName);
+
+    var Item := Module.FindItem(ItemName, True);
+    if (Item = nil) then
+    begin
+      Skip(skipNotFound);
+      exit;
+    end;
+
+    var Prop: TLocalizerProperty;
+    if (Module.Kind <> mkString) then
+    begin
+
+      Prop := Item.FindProperty(PropertyName, True);
+
+      if (Prop = nil) then
+      begin
+        Skip(skipNotFound);
+        exit;
+      end;
+
+    end else
+      // resourcestring; Just one unnamed property
+      Prop := Item.Properties.Values.ToArray[0];
+
+    var SegmentNode := UnitNode.ChildNodes.FindNode('segment');
+    if (SegmentNode = nil) then
+      exit;
+
+    var ChildNode := SegmentNode.ChildNodes.FindNode('source');
+    if (ChildNode = nil) then
+      raise EXLIFFImport.Create('Missing <source> node');
+    var SourceValue := ChildNode.Text;
+
+    Result := True; // We have a match
+
+    var TargetValue := '';
+    ChildNode := SegmentNode.ChildNodes.FindNode('target');
+    if (ChildNode <> nil) then
+      TargetValue := ChildNode.Text;
+
+    var State := VarToStr(SegmentNode.Attributes['state']);
+    if (State = 'final') then
+      NewStatus := tStatusTranslated
+    else
+    if (State = 'translated') then
+      NewStatus := tStatusProposed
+    else
+      NewStatus := tStatusPending;
+
+    // Attempt to repair XML parser's CR->LF conversion
+    RepairLinebreaks(Prop.Value, SourceValue);
+
+    // Mark obsolete if source has changed
+    if (NewStatus in [tStatusProposed, tStatusTranslated]) and (SourceValue <> Prop.Value) then
+      NewStatus := tStatusObsolete;
+
+    // Find existing translation
+    if Prop.Translations.TryGetTranslation(TranslationLanguage, Translation) then
+    begin
+
+      RepairLinebreaks(Translation.Value, TargetValue);
+
+      if (Translation.Value <> TargetValue) or (Translation.Status <> NewStatus) then
+      begin
+        Translation.Update(TargetValue, NewStatus);
+        Inc(Importer.TranslationCount.CountUpdated);
+      end else
+        Skip(skipUnchanged);
+
+    end else
+    // No existing translation; Do we have a new one?
+    if (NewStatus in [tStatusProposed, tStatusTranslated]) then
+    begin
+
+      RepairLinebreaks(Prop.Value, TargetValue);
+
+      Prop.Translations.AddOrUpdateTranslation(TranslationLanguage, TargetValue, NewStatus);
+      Inc(Importer.TranslationCount.CountAdded);
+
+    end;
+  end;
+
+  procedure ProcessGroup(const GroupNode: IXMLNode; Module: TLocalizerModule);
+  begin
+    for var i := 0 to GroupNode.ChildNodes.Count - 1 do
+    begin
+      var Node := GroupNode.ChildNodes[i];
+
+      if (Node.NodeName = 'unit') then
+        ProcessUnit(Node, Module)
+      else
+      if (Node.NodeName = 'group') then
+        ProcessGroup(Node, Module);
+    end;
+  end;
+
+begin
+  Result := False;
+
+  var Root := XML.DocumentElement;
+
+  Project.BeginUpdate;
+  try
+
+    if (Progress <> nil) then
+    begin
+      Progress.Progress(psBegin, 0, Root.ChildNodes.Count);
+      Progress.Show;
+    end;
+
+    var SourceLanguageName := VarToStr(Root.Attributes['srcLang']);
+    var TargetLanguageName := VarToStr(Root.Attributes['trgLang']);
+
+    var SourceLanguageItem := LanguageInfo.FindLocaleName(SourceLanguageName);
+    var TargetLanguageItem := LanguageInfo.FindLocaleName(TargetLanguageName);
+
+    if (SourceLanguageItem = nil) then
+      raise EXLIFFImport.CreateFmt('Unknown source language: %s', [SourceLanguageName]);
+
+    if (TargetLanguageItem = nil) then
+      raise EXLIFFImport.CreateFmt('Unknown target language: %s', [TargetLanguageName]);
+
+    TranslationLanguage := nil;
+    var FileFound := False;
+
+    for var i := 0 to Root.ChildNodes.Count-1 do
+    begin
+      if (Progress <> nil) then
+        Progress.AdvanceProgress;
+
+      var FileNode := Root.ChildNodes[i];
+      if (FileNode.NodeName <> 'file') then
+        continue;
+
+      FileFound := True;
+
+      var ModuleName := VarToStr(FileNode.Attributes['id']);
+
+      if (Progress <> nil) then
+        Progress.UpdateMessage(Format('%s (%s)', [ModuleName, TargetLanguageName]));
+
+      var Module := Project.FindModule(ModuleName, True);
+      if (Module = nil) then
+        continue;
+      // Nope! We do not add modules from the import
+      // Module := Project.AddModule(ModuleName);
+
+      if (TranslationLanguage = nil) then
+        TranslationLanguage := Project.TranslationLanguages.Add(TargetLanguageItem);
+
+      ProcessGroup(FileNode, Module);
+    end;
+
+    if (not FileFound) then
+      raise EXLIFFImport.Create('XLIFF file node not found');
+
+  finally
+    Project.EndUpdate;
+  end;
+end;
+
+// -----------------------------------------------------------------------------
+//
+// TModuleImporterXLIFFBase
+//
+// -----------------------------------------------------------------------------
+function XLIFF_Importer.LoadFromFile(Project: TLocalizerProject; const Filename: string; const Progress: IProgress): boolean;
+var
+  Stream: TStream;
+begin
+  Stream := TFileStream.Create(Filename, fmOpenRead or fmShareDenyWrite);
+  try
+    Result := LoadFromStream(Project, Stream, Filename, Progress);
+  finally
+    Stream.Free;
+  end;
+end;
+
+function XLIFF_Importer.LoadFromStream(Project: TLocalizerProject; Stream: TStream; const FileName: string; const Progress: IProgress): boolean;
+begin
+  var XML: IXMLDocument := TXMLDocument.Create(nil);
+  XML.Options := [doNodeAutoIndent]; // TODO : Why?
+  XML.Active := True;
+
+  XML.LoadFromStream(Stream);
+
+  if (XML.DocumentElement.NodeName <> 'xliff') then
+    raise EXLIFFImport.CreateFmt('XML document root node is not named "xliff": %s', [XML.DocumentElement.NodeName]);
+
+  var Version := VarToStr(XML.DocumentElement.Attributes['version']);
+
+  TranslationCount := Default(TTranslationCounts);
+  SkipCounts := Default(TSkipCounts);
+
+  var Importer: TModuleImporterXLIFF;
+  if Version.StartsWith('2.') then
+    Importer := TModuleImporterXLIFF2.Create(@Self)
+  else
+    Importer := TModuleImporterXLIFF1.Create(@Self);
+
+  Result := Importer.LoadFromDocument(Project, XML, Filename, Progress);
+end;
+
 
 // -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
