@@ -636,6 +636,7 @@ begin
       Inc(CountTarget);
     Inc(i);
   end;
+
   if (CountSource > CountTarget) then
     Result := Result + StringOfChar(' ', CountSource-CountTarget)
   else
@@ -702,17 +703,23 @@ begin
   // If source ends with a colon, semicolon or ellipsis the target should also do so
   if (EqualizeEnding in Rules) then
   begin
+    // If source does not end with X, target should also not end with X
+    for s in NormalizationEndings do
+    begin
+      if (not SourceValue.EndsWith(s)) and (Result.EndsWith(s)) then
+      begin
+        SetLength(Result, Length(Result)-Length(s));
+        break;
+      end;
+    end;
+
+    // If source ends with X, target should also end with X
     for s in NormalizationEndings do
     begin
       if (SourceValue.EndsWith(s)) then
       begin
         if (not Result.EndsWith(s)) and (Result[Length(Result)].IsLetterOrDigit) then
           Result := Result + s;
-        break;
-      end else
-      if (Result.EndsWith(s)) then
-      begin
-        SetLength(Result, Length(Result)-Length(s));
         break;
       end;
     end;

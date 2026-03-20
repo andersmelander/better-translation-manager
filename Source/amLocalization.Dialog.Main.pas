@@ -5239,13 +5239,22 @@ begin
   Value := Translation.Value;
   SourceValue := FocusedProperty.Value;
 
+  // Handle:
+  //   Source: abc:<space>
+  //   Target: xyz: -> xyz:<space>
+  if (tWarningTrailSpace in RemainingWarnings) and (tWarningTerminator in Warnings) then
+    Value := EqualizeTrailingSpace(SourceValue, Value);
+
   if (EqualizeRules <> []) then
     Value := MakeAlike(SourceValue, Value, EqualizeRules);
 
   if (tWarningLeadSpace in RemainingWarnings) then
     Value := EqualizeLeadingSpace(SourceValue, Value);
 
-  if (tWarningTrailSpace in RemainingWarnings) then
+  // Handle:
+  //   Source: abc<space>
+  //   Target: xyz -> xyz<space>
+  if (tWarningTrailSpace in RemainingWarnings) and not(tWarningTerminator in Warnings) then
     Value := EqualizeTrailingSpace(SourceValue, Value);
 
   Translation.Value := Value;
