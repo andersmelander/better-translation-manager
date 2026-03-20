@@ -539,6 +539,18 @@ type
     property Synthesize: TTranslationManagerParserSynthesizeSettings read FSynthesize;
   end;
 
+  TTranslationManagerRibbonSettings = class(TConfigurationStringValues)
+  private
+    FValid: boolean;
+    FShowTabGroups: boolean;
+  protected
+    procedure ApplyDefault; override;
+    procedure WriteSection(const Key: string); override;
+  published
+    property Valid: boolean read FValid write FValid;
+    property ShowTabGroups: boolean read FShowTabGroups write FShowTabGroups default True;
+  end;
+
 type
   TTranslationManagerSettings = class;
   TTranslationManagerSettingsEvent = reference to procedure(Settings: TTranslationManagerSettings);
@@ -563,6 +575,7 @@ type
     FProject: TTranslationManagerProjectSettings;
     FParser: TTranslationManagerParserSettings;
     FMessages: TConfigurationStringValues;
+    FRibbon: TTranslationManagerRibbonSettings;
   private
     class function GetFolderInstall: string; static;
   protected
@@ -593,6 +606,7 @@ type
     property Project: TTranslationManagerProjectSettings read FProject;
     property Parser: TTranslationManagerParserSettings read FParser;
     property Messages: TConfigurationStringValues read FMessages;
+    property Ribbon: TTranslationManagerRibbonSettings read FRibbon;
   end;
 
 function TranslationManagerSettings: TTranslationManagerSettings;
@@ -872,6 +886,8 @@ begin
   FProject := TTranslationManagerProjectSettings.Create(Self);
   FParser := TTranslationManagerParserSettings.Create(Self);
   FMessages := TConfigurationStringValues.Create(Self);
+  FRibbon := TTranslationManagerRibbonSettings.Create(Self);
+
 
   if (Assigned(FOnSettingsCreating)) then
     FOnSettingsCreating(Self);
@@ -895,6 +911,7 @@ begin
   FProject.Free;
   FParser.Free;
   FMessages.Free;
+  FRibbon.Free;
 
   inherited;
 end;
@@ -1514,6 +1531,20 @@ begin
   end;
 
   inherited WriteSection(Key);
+end;
+
+{ TTranslationManagerRibbonSettings }
+
+procedure TTranslationManagerRibbonSettings.ApplyDefault;
+begin
+  inherited;
+  FShowTabGroups := True;
+end;
+
+procedure TTranslationManagerRibbonSettings.WriteSection(const Key: string);
+begin
+  FValid := True;
+  inherited;
 end;
 
 initialization

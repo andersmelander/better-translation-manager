@@ -380,6 +380,7 @@ type
     TaskDialogPurge: TTaskDialog;
     TaskDialogPurgeSelected: TTaskDialog;
     AlertWindowManager: TdxAlertWindowManager;
+    ActionBuildAll: TAction;
     procedure FormCreate(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure ActionProjectUpdateExecute(Sender: TObject);
@@ -469,7 +470,6 @@ type
     procedure ActionStopListApplyUpdate(Sender: TObject);
     procedure RibbonGalleryItemStopListPopup(Sender: TObject);
     procedure PopupMenuBuildPopup(Sender: TObject);
-    procedure ButtonBuildAllClick(Sender: TObject);
     procedure ActionProofingCheckUpdate(Sender: TObject);
     procedure ActionProofingCheckSelectedUpdate(Sender: TObject);
     procedure ActionEditTranslationTextExecute(Sender: TObject);
@@ -555,6 +555,7 @@ type
     procedure ActionTranslationMemoryIsEnabled(Sender: TObject);
     procedure StatusBarPanels0Click(Sender: TObject);
     procedure AlertWindowManagerBeforeShow(Sender: TObject; AAlertWindow: TdxAlertWindow);
+    procedure ActionBuildAllExecute(Sender: TObject);
   private
     FProject: TLocalizerProject;
     FProjectFilename: string;
@@ -787,6 +788,7 @@ type
   protected
     // Build
     function BuildLanguageModule(LanguageItem: TLanguageItem; const Filename: string): boolean;
+    procedure OnBuildAllLanguagesHandler(Sender: TObject);
     procedure OnBuildSingleLanguageHandler(Sender: TObject);
   private
     // Notification
@@ -1533,6 +1535,7 @@ begin
     // TranslationManagerSettings.Layout.ItemGrid.ReadFilter(GridItemsTableView.Filtering);
   end;
 
+(*
 {$ifdef MADEXCEPT}
   if (TranslationManagerSettings.System.HideFeedback) then
     BarButtonFeedback.Visible := ivInCustomizing
@@ -1542,6 +1545,7 @@ begin
   ActionFeedback.Visible := False;
   BarButtonFeedback.Visible := ivNever;
 {$endif MADEXCEPT}
+*)
 end;
 
 procedure TFormMain.ApplyCustomSettings;
@@ -1578,6 +1582,29 @@ begin
       TextPanel.ParentFont :=True;
       TextPanel.Font.Color := clDefault;
     end;
+
+  if (TranslationManagerSettings.Ribbon.Valid) then
+  begin
+    RibbonMain.QuickAccessToolbar.Toolbar.ItemLinks.BeginUpdate;
+    try
+      RibbonMain.QuickAccessToolbar.Toolbar.ItemLinks.Clear;
+      for var i := 0 to TranslationManagerSettings.Ribbon.Count-1 do
+      begin
+        var Name := TranslationManagerSettings.Ribbon.Names[i];
+        var Item := BarManager.GetItemByName(Name);
+        if (Item = nil) then
+          continue;
+
+        var ItemLink := RibbonMain.QuickAccessToolbar.Toolbar.ItemLinks.Add(Item);
+
+        ItemLink.Visible := (StrToIntDef(TranslationManagerSettings.Ribbon.Values[Name], 0) <> 0);
+      end;
+
+      RibbonMain.ShowTabGroups := TranslationManagerSettings.Ribbon.ShowTabGroups;
+    finally
+      RibbonMain.QuickAccessToolbar.Toolbar.ItemLinks.EndUpdate;
+    end;
+  end;
 end;
 
 procedure TFormMain.SaveSettings;
@@ -1598,6 +1625,16 @@ begin
 
   if (not TranslationManagerSettings.System.SafeMode) then // Spell checker setting are not complete in safe mode
     TranslationManagerProofingSettingsAdapter.SaveFrom(TranslationManagerSettings.Proofing, SpellChecker);
+
+  TranslationManagerSettings.Ribbon.Clear;
+  for var i := 0 to RibbonMain.QuickAccessToolbar.Toolbar.ItemLinks.Count-1 do
+  begin
+    var ItemLink := RibbonMain.QuickAccessToolbar.Toolbar.ItemLinks[i];
+    if (ItemLink.Item = nil) or (ItemLink.Item.Name = '') then
+      continue;
+    TranslationManagerSettings.Ribbon.Values[ItemLink.Item.Name] := Ord(ItemLink.Visible).ToString;
+  end;
+  TranslationManagerSettings.Ribbon.ShowTabGroups := RibbonMain.ShowTabGroups;
 
   TranslationManagerSettings.System.HideFeedback := (BarButtonFeedback.Visible <> ivAlways);
 
@@ -2845,6 +2882,11 @@ begin
 end;
 
 // -----------------------------------------------------------------------------
+
+procedure TFormMain.ActionBuildAllExecute(Sender: TObject);
+begin
+  OnBuildAllLanguagesHandler(Sender);
+end;
 
 procedure TFormMain.ActionBuildExecute(Sender: TObject);
 begin
@@ -7533,7 +7575,7 @@ begin
 
 end;
 
-procedure TFormMain.ButtonBuildAllClick(Sender: TObject);
+procedure TFormMain.OnBuildAllLanguagesHandler(Sender: TObject);
 var
   i: integer;
   LanguageItem: TLanguageItem;

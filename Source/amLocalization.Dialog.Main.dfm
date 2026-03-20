@@ -25,7 +25,7 @@ object FormMain: TFormMain
     Style = rs2016
     ColorSchemeAccent = rcsaBlue
     ColorSchemeName = 'Basic'
-    PopupMenuItems = []
+    PopupMenuItems = [rpmiItems, rpmiCustomizeQAT]
     QuickAccessToolbar.Toolbar = BarManagerBarQuickAccess
     SupportNonClientDrawing = True
     Contexts = <>
@@ -1725,10 +1725,12 @@ object FormMain: TFormMain
     object BarButtonFeedbackPositive: TdxBarButton
       Action = ActionFeedbackPositive
       Category = 0
+      Visible = ivNever
     end
     object BarButtonFeedbackNegative: TdxBarButton
       Action = ActionFeedbackNegative
       Category = 0
+      Visible = ivNever
     end
     object BarButtonFeedbackHide: TdxBarButton
       Action = ActionFeedbackHide
@@ -1738,6 +1740,7 @@ object FormMain: TFormMain
     object BarButtonFeedback: TdxBarSubItem
       Action = ActionFeedback
       Category = 0
+      Visible = ivNever
       ItemLinks = <
         item
           Visible = True
@@ -1826,11 +1829,9 @@ object FormMain: TFormMain
       end
     end
     object ButtonBuildAll: TdxBarButton
-      Caption = 'All languages'
+      Action = ActionBuildAll
       Category = 0
-      Hint = 'All languages'
-      Visible = ivAlways
-      OnClick = ButtonBuildAllClick
+      Visible = ivNotInCustomizing
     end
     object ButtonSeparatorBuild: TdxBarSeparator
       Category = 0
@@ -2596,6 +2597,12 @@ object FormMain: TFormMain
       Caption = 'Obsolete'
       ImageIndex = 88
       OnExecute = ActionGotoNextStateObsoleteExecute
+    end
+    object ActionBuildAll: TAction
+      Category = 'Project'
+      Caption = 'All languages'
+      OnExecute = ActionBuildAllExecute
+      OnUpdate = ActionHasProjectUpdate
     end
   end
   object OpenDialogProject: TOpenDialog
