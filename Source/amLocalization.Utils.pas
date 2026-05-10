@@ -22,9 +22,15 @@ type
   );
 
 type
+  TLoadModuleOptions = set of (
+    lmoValidateVersion,
+    lmoValidateTimeStamp
+  );
+
+type
   LocalizationTools = record
-    class function LoadResourceModule(LanguageItem: TLanguageItem): boolean; overload; static;
-    class function LoadResourceModule(LocaleID: LCID): boolean; overload; static;
+    class function LoadResourceModule(LanguageItem: TLanguageItem; AOptions: TLoadModuleOptions = [lmoValidateVersion, lmoValidateTimeStamp]): boolean; overload; static;
+    class function LoadResourceModule(LocaleID: LCID; AOptions: TLoadModuleOptions = [lmoValidateVersion, lmoValidateTimeStamp]): boolean; overload; static;
     class function LoadResourceModule(const LocaleName: string): boolean; overload; static;
     class function BuildModuleFilename(const BaseFilename: string; LanguageItem: TLanguageItem; ModuleNameScheme: TModuleNameScheme): string; overload; static;
     class function BuildModuleFilename(const BaseFilename: string; LocaleID: LCID; ModuleNameScheme: TModuleNameScheme): string; overload; static;
@@ -103,7 +109,7 @@ end;
 
 // -----------------------------------------------------------------------------
 
-class function LocalizationTools.LoadResourceModule(LanguageItem: TLanguageItem): boolean;
+class function LocalizationTools.LoadResourceModule(LanguageItem: TLanguageItem; AOptions: TLoadModuleOptions): boolean;
 
   function AppendString(const s, value: string): string;
   begin
@@ -151,41 +157,52 @@ begin
     Result := (Module <> 0) and (ModuleFilename <> '');
 
     // Verify VersionInfo
-    if (Result) then
+    if (Result) and (lmoValidateVersion in AOptions) then
     begin
 
       var ApplicationVersion := TVersionInfo.FileVersionString(ParamStr(0));
       // Note: GetModuleFileName (used by GetModuleName) can not be used with modules loaded with LOAD_LIBRARY_AS_DATAFILE
-      var ModuleVersion := TVersionInfo.FileVersionString(ModuleFilename);
+      var ModuleVersion: string;
+      var VersionInfo := TVersionInfo.Create(ModuleFilename);
+      try
+        if (VersionInfo.Valid) then
+          ModuleVersion := TVersionInfo.VersionToString(VersionInfo.FileVersion)
+        else
+          ModuleVersion := '(VersionInfo missing)';
+      finally
+        VersionInfo.Free;
+      end;
 
       if (ApplicationVersion <> ModuleVersion) then
       begin
-        Result := False;
+        // Revert to default application language before we call anything that might use resourcestrings
+        LoadNewResourceModule(nil, ModuleFilename);
+
         MessageDlg(Format(sResourceModuleOutOfSync, [LanguageItem.LanguageName, ApplicationVersion, ModuleVersion])+sResourceModuleFallback, mtWarning, [mbOK], 0);
+        Exit(False);
       end;
     end;
 
     // Verify timestamp
-    if (Result) then
+    if (Result) and (lmoValidateTimeStamp in AOptions) then
     begin
 
       var AgeDifference := MinutesBetween(TFile.GetLastWriteTime(ParamStr(0)), TFile.GetLastWriteTime(ModuleFilename));
 
       if (AgeDifference > ResourceModuleMaxAgeDifference) then
       begin
-        Result := False;
+        // Revert to default application language before we call anything that might use resourcestrings
+        LoadNewResourceModule(nil, ModuleFilename);
+
         var s := AgeToString(AgeDifference);
         MessageDlg(Format(sResourceModuleTooOld, [LanguageItem.LanguageName, s])+sResourceModuleFallback, mtWarning, [mbOK], 0);
+        Exit(False);
       end;
     end;
   end;
-
-  if (not Result) then
-    // Use default application language if we failed to load a resource module
-    LoadNewResourceModule(nil, ModuleFilename);
 end;
 
-class function LocalizationTools.LoadResourceModule(LocaleID: LCID): boolean;
+class function LocalizationTools.LoadResourceModule(LocaleID: LCID; AOptions: TLoadModuleOptions): boolean;
 const
   // Do not localize - localizations has not yet been loaded
   sResourceModuleUnknownLanguage = 'Unknown language ID: %d'+#13#13+
@@ -202,7 +219,7 @@ begin
       MessageDlg(Format(sResourceModuleUnknownLanguage, [LocaleID]), mtWarning, [mbOK], 0);
   end;
 
-  Result := LoadResourceModule(LanguageItem);
+  Result := LoadResourceModule(LanguageItem, AOptions);
 end;
 
 class function LocalizationTools.LoadResourceModule(const LocaleName: string): boolean;
