@@ -5302,7 +5302,7 @@ var
   Translation: TLocalizerTranslation;
 begin
   SaveCursor(crAppStart);
-  GridItemsTableView.BeginUpdate;
+  GridItemsTableView.BeginUpdate(lsimImmediate); // lsimImmediate: Work around for black screen due to modal dialog inside BeginUpdate/EndUpdate
   try
     var UpdatedSame := 0;
     var UpdatedSimilar := 0;
@@ -5338,7 +5338,7 @@ var
   Translation: TLocalizerTranslation;
 begin
   SaveCursor(crAppStart);
-  GridItemsTableView.BeginUpdate;
+  GridItemsTableView.BeginUpdate(lsimImmediate); // lsimImmediate: Work around for black screen due to modal dialog inside BeginUpdate/EndUpdate
   try
     var PromptOverride: TTranslationAutoApply := aaPrompt;
     var UpdatedSame := 0;
@@ -5460,7 +5460,7 @@ begin
   FFilterTargetLanguages := DialogLanguages.ApplyFilter;
   SourceLanguage := DialogLanguages.SourceLanguage;
 
-  GridItemsTableView.BeginUpdate;
+  GridItemsTableView.BeginUpdate(lsimImmediate); // lsimImmediate: Work around for black screen due to modal dialog inside BeginUpdate/EndUpdate
   try
     var DeleteLanguages := TList<TTranslationLanguage>.Create;
     try
