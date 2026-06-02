@@ -403,7 +403,7 @@ begin
               for i := 0 to TranslationMemoryDataSet.Fields.Count-1 do
                 Languages.Add(TranslationMemoryDataSet.Fields[i].FieldName, TranslationMemoryDataSet.Fields[i]);
             end else
-              TranslationMemoryDataSet.Fields.Clear;
+              TranslationMemory.Clear;
 
             (*
             ** Call derived class to read terms from import file

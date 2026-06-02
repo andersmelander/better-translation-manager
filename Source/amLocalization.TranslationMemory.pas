@@ -70,6 +70,7 @@ type
 
   ITranslationMemory = interface
     ['{8D4D5538-3A16-4220-9FDF-F88B8A7DED6C}']
+    procedure Clear;
     function CreateField(LanguageItem: TLanguageItem): TField;
     function FieldToLanguage(Field: TField): TLanguageItem;
     function SaveTableTranslationMemoryClone: IInterface;

@@ -74,6 +74,7 @@ type
     property RefreshEvent: TEvent read FRefreshEvent;
   protected
     // ITranslationMemory
+    procedure Clear;
     function CreateField(LanguageItem: TLanguageItem): TField;
     function FieldToLanguage(Field: TField): TLanguageItem;
     function SaveTableTranslationMemoryClone: IInterface;
@@ -764,6 +765,23 @@ begin
 
   inherited;
 end;
+
+// -----------------------------------------------------------------------------
+
+procedure TDataModuleTranslationMemory.Clear;
+begin
+  Lock;
+  try
+    TableTranslationMemory.Close;
+    TableTranslationMemory.Fields.Clear;
+    TableTranslationMemory.FieldDefs.Clear;
+    FFieldLanguage.Clear;
+  finally
+    Unlock;
+  end;
+end;
+
+// -----------------------------------------------------------------------------
 
 function TDataModuleTranslationMemory.SaveTableTranslationMemoryClone: IInterface;
 begin
@@ -1463,10 +1481,7 @@ begin
     if (Stream.Read(Signature[1], Length(sTMFileSignature)) <> Length(sTMFileSignature)) or (Signature <> sTMFileSignature) then
       raise ETranslationMemory.Create('Invalid TM file signature');
 
-    TableTranslationMemory.Close;
-    TableTranslationMemory.Fields.Clear;
-    TableTranslationMemory.FieldDefs.Clear;
-    FFieldLanguage.Clear;
+    Clear;
 
     Reader := TReader.Create(Stream, 8192);
     try
