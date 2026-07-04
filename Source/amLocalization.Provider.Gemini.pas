@@ -617,7 +617,9 @@ begin
   Result := (TranslatedText <> '');
 
   if (Result) then
-    ATranslations.Text := TranslatedText;
+    // Issue #105: Providers does not handle multi-line texts
+    // Do not assign result via TStrings.Text as we need to return line breaks as-is.
+    ATranslations.Add(TranslatedText);
 end;
 
 var
