@@ -260,6 +260,7 @@ object DataModuleMain: TDataModuleMain
     end
     object EditRepositoryComboBoxItemStatus: TcxEditRepositoryImageComboBoxItem
       Properties.Images = ImageListTree
+      Properties.ImmediateDropDownWhenActivated = True
       Properties.ImmediatePost = True
       Properties.ImmediateUpdateText = True
       Properties.Items = <
@@ -281,6 +282,7 @@ object DataModuleMain: TDataModuleMain
     end
     object EditRepositoryComboBoxItemState: TcxEditRepositoryImageComboBoxItem
       Properties.Images = ImageListTree
+      Properties.ImmediateDropDownWhenActivated = True
       Properties.ImmediatePost = True
       Properties.ImmediateUpdateText = True
       Properties.Items = <
@@ -304,6 +306,31 @@ object DataModuleMain: TDataModuleMain
           ImageIndex = 4
           Value = 3
         end>
+    end
+    object EditRepositoryComboBoxItemPriority: TcxEditRepositoryImageComboBoxItem
+      Properties.ClearKey = 8
+      Properties.Images = ImageListSmall
+      Properties.ImmediateDropDownWhenActivated = True
+      Properties.ImmediatePost = True
+      Properties.Items = <
+        item
+          Description = 'High'
+          ImageIndex = 94
+          Tag = 1
+          Value = 1
+        end
+        item
+          Description = 'Normal'
+          ImageIndex = 93
+          Value = 0
+        end
+        item
+          Description = 'Low'
+          ImageIndex = 92
+          Tag = -1
+          Value = -1
+        end>
+      Properties.ShowDescriptions = False
     end
   end
   object ImageListTree: TcxImageList

@@ -382,6 +382,7 @@ type
     AlertWindowManager: TdxAlertWindowManager;
     ActionBuildAll: TAction;
     TreeListColumnModulePriority: TcxTreeListColumn;
+    GridItemsTableViewColumnPriority: TcxGridColumn;
     procedure FormCreate(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure ActionProjectUpdateExecute(Sender: TObject);
@@ -559,6 +560,11 @@ type
     procedure ActionBuildAllExecute(Sender: TObject);
     procedure TreeListModulesInitEdit(Sender, AItem: TObject; AEdit: TcxCustomEdit);
     procedure TreeListColumnModulePriorityPropertiesEditValueChanged(Sender: TObject);
+    procedure GridItemsTableViewColumnPriorityGetFilterValues(Sender: TcxCustomGridTableItem; AValueList: TcxDataFilterValueList);
+    procedure GridItemsTableViewColumnPriorityCustomDrawHeader(Sender: TcxGridTableView; ACanvas: TcxCanvas;
+      AViewInfo: TcxGridColumnHeaderViewInfo; var ADone: Boolean);
+    procedure GridItemsTableViewCellClick(Sender: TcxCustomGridTableView; ACellViewInfo: TcxGridTableDataCellViewInfo;
+      AButton: TMouseButton; AShift: TShiftState; var AHandled: Boolean);
   private
     FProject: TLocalizerProject;
     FProjectFilename: string;
@@ -1511,6 +1517,10 @@ end;
 
 // -----------------------------------------------------------------------------
 
+const
+  cItemGridLayoutVersion = 1;
+  cModuleGridLayoutVersion = 1;
+
 procedure TFormMain.ApplySettings;
 begin
   (*
@@ -1528,11 +1538,12 @@ begin
   if (TranslationManagerSettings.Layout.ModuleTree.Valid) then
   begin
     // Tree.RestoreFromRegistry fails if data doesn't exist
-    TreeListModules.RestoreFromRegistry(TranslationManagerSettings.Layout.KeyPath, False, False, TranslationManagerSettings.Layout.ModuleTree.Name);
+    if (TranslationManagerSettings.Layout.ModuleTree.LayoutVersion = cModuleGridLayoutVersion) then
+      TreeListModules.RestoreFromRegistry(TranslationManagerSettings.Layout.KeyPath, False, False, TranslationManagerSettings.Layout.ModuleTree.Name);
     TranslationManagerLayoutTreeSettingsAdapter.ReadFilter(TranslationManagerSettings.Layout.ModuleTree, TreeListModules.Filter);
   end;
 
-  if (TranslationManagerSettings.Layout.ItemGrid.Valid) then
+  if (TranslationManagerSettings.Layout.ItemGrid.Valid) and (TranslationManagerSettings.Layout.ItemGrid.LayoutVersion = cItemGridLayoutVersion) then
   begin
     GridItemsTableView.RestoreFromRegistry(TranslationManagerSettings.Layout.KeyPath, False, False, [gsoUseFilter], TranslationManagerSettings.Layout.ItemGrid.Name);
     // TranslationManagerSettings.Layout.ItemGrid.ReadFilter(GridItemsTableView.Filtering);
@@ -1622,9 +1633,11 @@ begin
   TreeListModules.StoreToRegistry(TranslationManagerSettings.Layout.KeyPath, False, TranslationManagerSettings.Layout.ModuleTree.Name);
   TranslationManagerLayoutTreeSettingsAdapter.WriteFilter(TranslationManagerSettings.Layout.ModuleTree, TreeListModules.Filter);
   TranslationManagerSettings.Layout.ModuleTree.Valid := True;
+  TranslationManagerSettings.Layout.ModuleTree.LayoutVersion := cModuleGridLayoutVersion;
 
   GridItemsTableView.StoreToRegistry(TranslationManagerSettings.Layout.KeyPath, False, [gsoUseFilter], TranslationManagerSettings.Layout.ItemGrid.Name);
   TranslationManagerSettings.Layout.ItemGrid.Valid := True;
+  TranslationManagerSettings.Layout.ItemGrid.LayoutVersion := cItemGridLayoutVersion;
 
   if (not TranslationManagerSettings.System.SafeMode) then // Spell checker setting are not complete in safe mode
     TranslationManagerProofingSettingsAdapter.SaveFrom(TranslationManagerSettings.Proofing, SpellChecker);
@@ -6641,6 +6654,18 @@ begin
   PostTranslationTextEdit;
 end;
 
+procedure TFormMain.GridItemsTableViewCellClick(Sender: TcxCustomGridTableView; ACellViewInfo: TcxGridTableDataCellViewInfo;
+  AButton: TMouseButton; AShift: TShiftState; var AHandled: Boolean);
+begin
+  // Single click on combobox starts edit mode.
+  // This avoid the need for 2-3 clicks on a cell to drop down the list
+  if (ACellViewInfo.Item.Options.Editing) and (ACellViewInfo.Item.GetProperties is TcxImageComboBoxProperties) then
+  begin
+    Sender.Controller.EditingController.ShowEdit;
+    AHandled := True;
+  end;
+end;
+
 procedure TFormMain.GridItemsTableViewCellDblClick(Sender: TcxCustomGridTableView; ACellViewInfo: TcxGridTableDataCellViewInfo;
   AButton: TMouseButton; AShift: TShiftState; var AHandled: Boolean);
 begin
@@ -6683,6 +6708,33 @@ begin
     AHintTextRect.Left := ACellViewInfo.TextAreaBounds.Left - 2;
 *)
   end;
+end;
+
+procedure TFormMain.GridItemsTableViewColumnPriorityCustomDrawHeader(Sender: TcxGridTableView; ACanvas: TcxCanvas;
+  AViewInfo: TcxGridColumnHeaderViewInfo; var ADone: Boolean);
+begin
+  if (ScaleValue(AViewInfo.ClientBounds.Width) < 40) then
+  begin
+    // No room for caption; Only draw glyph
+    AViewInfo.Text := '';
+  end else
+  begin
+    // Caption is visible; Do not draw glyph
+    for var i := AViewInfo.AreaViewInfoCount-1 downto 0 do
+      if (AViewInfo.AreaViewInfos[i] is TcxGridColumnHeaderGlyphViewInfo) then
+      begin
+        TcxGridColumnHeaderGlyphViewInfo(AViewInfo.AreaViewInfos[i]).Visible := False;
+        break;
+      end;
+  end;
+end;
+
+procedure TFormMain.GridItemsTableViewColumnPriorityGetFilterValues(Sender: TcxCustomGridTableItem;
+  AValueList: TcxDataFilterValueList);
+begin
+  var Properties := TcxImageComboBoxProperties(Sender.GetProperties);
+  for var i := 0 to Properties.Items.Count-1 do
+    AValueList.Add(fviValue, Properties.Items[i].Value, Properties.Items[i].Description, True);
 end;
 
 procedure TFormMain.GridItemsTableViewColumnStatusStateGetFilterValues(Sender: TcxCustomGridTableItem; AValueList: TcxDataFilterValueList);
@@ -7028,6 +7080,13 @@ var
 {$endif DEBUG}
 begin
   HideHint;
+
+  if (AItem = GridItemsTableViewColumnPriority) and (AEdit is TcxImageComboBox) then
+  begin
+    // Hide button of Priority combobox
+    TcxImageComboBox(AEdit).Properties.Buttons[0].Visible := False;
+    exit;
+  end;
 
   if (AItem <> GridItemsTableViewColumnTarget) then
     Exit;

@@ -32,11 +32,12 @@ type
       ItemIndexType             = 1;
       ItemIndexValueName        = 2;
       ItemIndexID               = 3;
-      ItemIndexStatus           = 4;
-      ItemIndexEffectiveStatus  = 5;
-      ItemIndexState            = 6;
-      ItemIndexSourceValue      = 7;
-      ItemIndexTargetValue      = 8;
+      ItemIndexPriority         = 4;
+      ItemIndexStatus           = 5;
+      ItemIndexEffectiveStatus  = 6;
+      ItemIndexState            = 7;
+      ItemIndexSourceValue      = 8;
+      ItemIndexTargetValue      = 9;
   strict private
     type
       TItem = record
@@ -181,6 +182,10 @@ begin
         Result := Translation.Value
       else
         Result := Prop.Value;
+
+    ItemIndexPriority:
+      Result := Prop.Priority;
+
   else
     Result := Null;
   end;
@@ -299,6 +304,11 @@ begin
 
         FItems[Integer(ARecordHandle)].PeekResult := TTranslationMemoryPeekResult.prNone;
       end;
+
+    ItemIndexPriority:
+      if (VarIsOrdinal(AValue)) then
+        Prop.Priority := AValue;
+
   end;
 end;
 

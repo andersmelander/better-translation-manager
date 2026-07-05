@@ -98,6 +98,7 @@ type
     StyleSkinDefault: TcxStyle;
     StyleSkinSelected: TcxStyle;
     StyleSkinSelectedInactive: TcxStyle;
+    EditRepositoryComboBoxItemPriority: TcxEditRepositoryImageComboBoxItem;
     procedure DataModuleCreate(Sender: TObject);
     procedure GridTableViewTargetLanguagesDataControllerFilterRecord(ADataController: TcxCustomDataController;
       ARecordIndex: Integer; var Accept: Boolean);

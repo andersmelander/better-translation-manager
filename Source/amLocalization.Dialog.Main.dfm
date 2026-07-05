@@ -406,6 +406,7 @@ object FormMain: TFormMain
         DataController.Options = [dcoAnsiSort, dcoCaseInsensitive, dcoAssignGroupingValues, dcoAssignMasterDetailKeys, dcoSaveExpanding]
         DataController.OnCompare = GridItemsTableViewDataControllerCompare
         DataController.OnRecordChanged = GridItemsTableViewDataControllerRecordChanged
+        Images = DataModuleMain.ImageListSmall
         OptionsBehavior.CellHints = True
         OptionsBehavior.FocusCellOnTab = True
         OptionsBehavior.IncSearch = True
@@ -476,6 +477,19 @@ object FormMain: TFormMain
           Options.Grouping = False
           VisibleForEditForm = bFalse
           Width = 100
+        end
+        object GridItemsTableViewColumnPriority: TcxGridColumn
+          Caption = 'Priority'
+          RepositoryItem = DataModuleMain.EditRepositoryComboBoxItemPriority
+          Visible = False
+          OnGetFilterValues = GridItemsTableViewColumnPriorityGetFilterValues
+          HeaderGlyphAlignmentHorz = taCenter
+          HeaderImageIndex = 93
+          Options.IncSearch = False
+          Options.FilteringAddValueItems = False
+          Options.FilteringFilteredItemsList = False
+          Width = 25
+          OnCustomDrawHeader = GridItemsTableViewColumnPriorityCustomDrawHeader
         end
         object GridItemsTableViewColumnStatus: TcxGridColumn
           Caption = 'Status'

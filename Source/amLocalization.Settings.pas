@@ -242,9 +242,11 @@ type
   TTranslationManagerLayoutGridSettings = class(TConfigurationSection)
   private
     FValid: boolean;
+    FLayoutVersion: integer;
   public
   published
     property Valid: boolean read FValid write FValid;
+    property LayoutVersion: integer read FLayoutVersion write FLayoutVersion;
   end;
 
   TTranslationManagerLayoutTreeSettings = class(TTranslationManagerLayoutGridSettings);
