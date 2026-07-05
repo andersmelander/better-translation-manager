@@ -381,6 +381,7 @@ type
     TaskDialogPurgeSelected: TTaskDialog;
     AlertWindowManager: TdxAlertWindowManager;
     ActionBuildAll: TAction;
+    TreeListColumnModulePriority: TcxTreeListColumn;
     procedure FormCreate(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure ActionProjectUpdateExecute(Sender: TObject);
@@ -556,6 +557,8 @@ type
     procedure StatusBarPanels0Click(Sender: TObject);
     procedure AlertWindowManagerBeforeShow(Sender: TObject; AAlertWindow: TdxAlertWindow);
     procedure ActionBuildAllExecute(Sender: TObject);
+    procedure TreeListModulesInitEdit(Sender, AItem: TObject; AEdit: TcxCustomEdit);
+    procedure TreeListColumnModulePriorityPropertiesEditValueChanged(Sender: TObject);
   private
     FProject: TLocalizerProject;
     FProjectFilename: string;
@@ -6179,6 +6182,7 @@ begin
 
     Node.Texts[TreeListColumnModuleName.ItemIndex] := Module.Name;
     Node.Values[TreeListColumnModuleStatus.ItemIndex] := Ord(Module.EffectiveStatus);
+    Node.Values[TreeListColumnModulePriority.ItemIndex] := Module.Priority;
 
     if (Recurse) and (Node.Focused) then
       GridItemsTableView.Invalidate(True);
@@ -7906,6 +7910,12 @@ end;
 
 // -----------------------------------------------------------------------------
 
+procedure TFormMain.TreeListColumnModulePriorityPropertiesEditValueChanged(Sender: TObject);
+begin
+  // Module priority edited inline
+  FocusedModule.Priority := TcxImageComboBox(Sender).EditValue;
+end;
+
 procedure TFormMain.TreeListColumnModuleStatusPropertiesEditValueChanged(Sender: TObject);
 begin
   // Module status edited inline
@@ -8162,31 +8172,47 @@ end;
 
 procedure TFormMain.TreeListModulesCompare(Sender: TcxCustomTreeList; ANode1, ANode2: TcxTreeListNode; var ACompare: Integer);
 begin
-  ACompare := 0;
+  if (ANode1 = ANode2) then
+    exit;
+
+  // resourcestrings always before anything else, regardless of sort order
+  if (TLocalizerModule(ANode1.Data).Kind = mkString) then
+  begin
+    ACompare := -1;
+    exit;
+  end else
+  if (TLocalizerModule(ANode2.Data).Kind = mkString) then
+  begin
+    ACompare := 1;
+    exit;
+  end else
+    ACompare := 0;
 
   for var i := 0 to Sender.SortedColumnCount-1 do
   begin
-    // resourcestrings always before anything else, regardless of sort order
-    if (TLocalizerModule(ANode1.Data).Kind = mkString) then
-      ACompare := -1
-    else
-    if (TLocalizerModule(ANode2.Data).Kind = mkString) then
-      ACompare := 1
-    else
-    begin
-      if (i = 0) then
-        // Sort module name using locale invariant compare; We don't want, for example, AE, OE, and AA treated as Ø, Æ, and Å
-        ACompare := string.Compare(ANode1.Texts[i], ANode2.Texts[i], [coIgnoreCase, coDigitAsNumbers], LOCALE_INVARIANT)
-      else
-        ACompare := string.Compare(ANode1.Texts[i], ANode2.Texts[i], [coIgnoreCase, coDigitAsNumbers]);
+    var Column := Sender.SortedColumns[i];
 
-      if (Sender.SortedColumns[i].SortOrder = soDescending) then
-        ACompare := -ACompare;
-    end;
+    if (Column = TreeListColumnModuleName) then
+      // Sort module name using locale invariant compare; We don't want, for example, AE, OE, and AA treated as Ø, Æ, and Å
+      ACompare := string.Compare(ANode1.Texts[Column.ItemIndex], ANode2.Texts[Column.ItemIndex], [coIgnoreCase, coDigitAsNumbers], LOCALE_INVARIANT)
+    else
+    if (Column = TreeListColumnModuleStatus) then
+      ACompare := string.Compare(ANode1.Texts[Column.ItemIndex], ANode2.Texts[Column.ItemIndex], [coIgnoreCase, coDigitAsNumbers])
+    else
+    if (Column = TreeListColumnModulePriority) then
+      // High priority before low
+      ACompare := integer(ANode2.Values[Column.ItemIndex]) - integer(ANode1.Values[Column.ItemIndex]);
+
+    if (Column.SortOrder = soDescending) then
+      ACompare := -ACompare;
 
     if (ACompare <> 0) then
       break;
   end;
+
+  // Default order is by module name
+  if (ACompare = 0) then
+    ACompare := string.Compare(ANode1.Texts[TreeListColumnModuleName.ItemIndex], ANode2.Texts[TreeListColumnModuleName.ItemIndex], [coIgnoreCase, coDigitAsNumbers], LOCALE_INVARIANT);
 end;
 
 procedure TFormMain.TreeListModulesFocusedColumnChanged(
@@ -8301,6 +8327,13 @@ begin
     AIndex := NodeImageIndexHold
   else
     AIndex := -1;
+end;
+
+procedure TFormMain.TreeListModulesInitEdit(Sender, AItem: TObject; AEdit: TcxCustomEdit);
+begin
+  // Hide button of Priority combobox
+  if (TreeListModules.FocusedColumn = TreeListColumnModulePriority) and (AEdit is TcxImageComboBox) then
+    TcxImageComboBox(AEdit).Properties.Buttons[0].Visible := False;
 end;
 
 procedure TFormMain.TreeListModulesStylesGetContentStyle(Sender: TcxCustomTreeList; AColumn: TcxTreeListColumn; ANode: TcxTreeListNode; var AStyle: TcxStyle);
