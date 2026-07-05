@@ -398,6 +398,7 @@ begin
         Module.Kind := StringToModuleKind(VarToStr(ModuleNode.Attributes['type']));
         StringToItemState(Module, VarToStr(ModuleNode.Attributes['state']));
         Module.Status := StringToItemStatus(VarToStr(ModuleNode.Attributes['status']));
+        Module.Priority := StrToIntDef(VarToStr(ModuleNode.Attributes['priority']), 0);
 
         ItemsNode := ModuleNode.ChildNodes.FindNode('items');
         if (ItemsNode <> nil) then
@@ -427,6 +428,7 @@ begin
                     Prop.ClearState(ItemStateNew);
                     StringToItemState(Prop, VarToStr(PropNode.Attributes['state']));
                     Prop.Status := StringToItemStatus(VarToStr(PropNode.Attributes['status']));
+                    Prop.Priority := StrToIntDef(VarToStr(PropNode.Attributes['priority']), 0);
                     Prop.Flags := StringToPropFlags(VarToStr(PropNode.Attributes['flags']));
                     Prop.Synthesized := AnsiSameText(VarToStr(PropNode.Attributes['synthesized']), 'true');
 
@@ -545,6 +547,12 @@ class procedure TLocalizationProjectFiler.SaveToStream(Project: TLocalizerProjec
     WriteItemStatus(Node, Item.Status);
   end;
 
+  procedure WriteItemPriority(const Node: IXMLNode; Item: TCustomLocalizerItem);
+  begin
+    if (Item.Priority <> 0) then
+      Node.Attributes['priority'] := Item.Priority;
+  end;
+
   procedure WriteItemName(const Node: IXMLNode; Item: TCustomLocalizerItem);
   begin
     if (not Item.Name.IsEmpty) then
@@ -661,6 +669,7 @@ begin
     ModuleNode.Attributes['type'] := sModuleKind[Module.Kind];
     WriteItemState(ModuleNode, Module);
     WriteItemStatus(ModuleNode, Module);
+    WriteItemPriority(ModuleNode, Module);
 
     if (soOmitDontTranslateItems in AOptions) and (Module.Status = ItemStatusDontTranslate) then
       continue;
@@ -727,6 +736,7 @@ begin
         WriteItemName(PropNode, Prop);
         WriteItemState(PropNode, Prop);
         WriteItemStatus(PropNode, Prop);
+        WriteItemPriority(PropNode, Prop);
         WritePropFlags(PropNode, Prop);
         WritePropOptions(PropNode, Prop);
 
