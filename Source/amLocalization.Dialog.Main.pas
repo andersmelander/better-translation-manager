@@ -381,6 +381,8 @@ type
     TaskDialogPurgeSelected: TTaskDialog;
     AlertWindowManager: TdxAlertWindowManager;
     ActionBuildAll: TAction;
+    TreeListColumnModulePriority: TcxTreeListColumn;
+    GridItemsTableViewColumnPriority: TcxGridColumn;
     procedure FormCreate(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure ActionProjectUpdateExecute(Sender: TObject);
@@ -556,6 +558,13 @@ type
     procedure StatusBarPanels0Click(Sender: TObject);
     procedure AlertWindowManagerBeforeShow(Sender: TObject; AAlertWindow: TdxAlertWindow);
     procedure ActionBuildAllExecute(Sender: TObject);
+    procedure TreeListModulesInitEdit(Sender, AItem: TObject; AEdit: TcxCustomEdit);
+    procedure TreeListColumnModulePriorityPropertiesEditValueChanged(Sender: TObject);
+    procedure GridItemsTableViewColumnPriorityGetFilterValues(Sender: TcxCustomGridTableItem; AValueList: TcxDataFilterValueList);
+    procedure GridItemsTableViewColumnPriorityCustomDrawHeader(Sender: TcxGridTableView; ACanvas: TcxCanvas;
+      AViewInfo: TcxGridColumnHeaderViewInfo; var ADone: Boolean);
+    procedure GridItemsTableViewCellClick(Sender: TcxCustomGridTableView; ACellViewInfo: TcxGridTableDataCellViewInfo;
+      AButton: TMouseButton; AShift: TShiftState; var AHandled: Boolean);
   private
     FProject: TLocalizerProject;
     FProjectFilename: string;
@@ -1508,6 +1517,10 @@ end;
 
 // -----------------------------------------------------------------------------
 
+const
+  cItemGridLayoutVersion = 1;
+  cModuleGridLayoutVersion = 1;
+
 procedure TFormMain.ApplySettings;
 begin
   (*
@@ -1525,11 +1538,12 @@ begin
   if (TranslationManagerSettings.Layout.ModuleTree.Valid) then
   begin
     // Tree.RestoreFromRegistry fails if data doesn't exist
-    TreeListModules.RestoreFromRegistry(TranslationManagerSettings.Layout.KeyPath, False, False, TranslationManagerSettings.Layout.ModuleTree.Name);
+    if (TranslationManagerSettings.Layout.ModuleTree.LayoutVersion = cModuleGridLayoutVersion) then
+      TreeListModules.RestoreFromRegistry(TranslationManagerSettings.Layout.KeyPath, False, False, TranslationManagerSettings.Layout.ModuleTree.Name);
     TranslationManagerLayoutTreeSettingsAdapter.ReadFilter(TranslationManagerSettings.Layout.ModuleTree, TreeListModules.Filter);
   end;
 
-  if (TranslationManagerSettings.Layout.ItemGrid.Valid) then
+  if (TranslationManagerSettings.Layout.ItemGrid.Valid) and (TranslationManagerSettings.Layout.ItemGrid.LayoutVersion = cItemGridLayoutVersion) then
   begin
     GridItemsTableView.RestoreFromRegistry(TranslationManagerSettings.Layout.KeyPath, False, False, [gsoUseFilter], TranslationManagerSettings.Layout.ItemGrid.Name);
     // TranslationManagerSettings.Layout.ItemGrid.ReadFilter(GridItemsTableView.Filtering);
@@ -1619,9 +1633,11 @@ begin
   TreeListModules.StoreToRegistry(TranslationManagerSettings.Layout.KeyPath, False, TranslationManagerSettings.Layout.ModuleTree.Name);
   TranslationManagerLayoutTreeSettingsAdapter.WriteFilter(TranslationManagerSettings.Layout.ModuleTree, TreeListModules.Filter);
   TranslationManagerSettings.Layout.ModuleTree.Valid := True;
+  TranslationManagerSettings.Layout.ModuleTree.LayoutVersion := cModuleGridLayoutVersion;
 
   GridItemsTableView.StoreToRegistry(TranslationManagerSettings.Layout.KeyPath, False, [gsoUseFilter], TranslationManagerSettings.Layout.ItemGrid.Name);
   TranslationManagerSettings.Layout.ItemGrid.Valid := True;
+  TranslationManagerSettings.Layout.ItemGrid.LayoutVersion := cItemGridLayoutVersion;
 
   if (not TranslationManagerSettings.System.SafeMode) then // Spell checker setting are not complete in safe mode
     TranslationManagerProofingSettingsAdapter.SaveFrom(TranslationManagerSettings.Proofing, SpellChecker);
@@ -6179,6 +6195,7 @@ begin
 
     Node.Texts[TreeListColumnModuleName.ItemIndex] := Module.Name;
     Node.Values[TreeListColumnModuleStatus.ItemIndex] := Ord(Module.EffectiveStatus);
+    Node.Values[TreeListColumnModulePriority.ItemIndex] := Module.Priority;
 
     if (Recurse) and (Node.Focused) then
       GridItemsTableView.Invalidate(True);
@@ -6637,6 +6654,18 @@ begin
   PostTranslationTextEdit;
 end;
 
+procedure TFormMain.GridItemsTableViewCellClick(Sender: TcxCustomGridTableView; ACellViewInfo: TcxGridTableDataCellViewInfo;
+  AButton: TMouseButton; AShift: TShiftState; var AHandled: Boolean);
+begin
+  // Single click on combobox starts edit mode.
+  // This avoid the need for 2-3 clicks on a cell to drop down the list
+  if (ACellViewInfo.Item.Options.Editing) and (ACellViewInfo.Item.GetProperties is TcxImageComboBoxProperties) then
+  begin
+    Sender.Controller.EditingController.ShowEdit;
+    AHandled := True;
+  end;
+end;
+
 procedure TFormMain.GridItemsTableViewCellDblClick(Sender: TcxCustomGridTableView; ACellViewInfo: TcxGridTableDataCellViewInfo;
   AButton: TMouseButton; AShift: TShiftState; var AHandled: Boolean);
 begin
@@ -6679,6 +6708,33 @@ begin
     AHintTextRect.Left := ACellViewInfo.TextAreaBounds.Left - 2;
 *)
   end;
+end;
+
+procedure TFormMain.GridItemsTableViewColumnPriorityCustomDrawHeader(Sender: TcxGridTableView; ACanvas: TcxCanvas;
+  AViewInfo: TcxGridColumnHeaderViewInfo; var ADone: Boolean);
+begin
+  if (ScaleValue(AViewInfo.ClientBounds.Width) < 40) then
+  begin
+    // No room for caption; Only draw glyph
+    AViewInfo.Text := '';
+  end else
+  begin
+    // Caption is visible; Do not draw glyph
+    for var i := AViewInfo.AreaViewInfoCount-1 downto 0 do
+      if (AViewInfo.AreaViewInfos[i] is TcxGridColumnHeaderGlyphViewInfo) then
+      begin
+        TcxGridColumnHeaderGlyphViewInfo(AViewInfo.AreaViewInfos[i]).Visible := False;
+        break;
+      end;
+  end;
+end;
+
+procedure TFormMain.GridItemsTableViewColumnPriorityGetFilterValues(Sender: TcxCustomGridTableItem;
+  AValueList: TcxDataFilterValueList);
+begin
+  var Properties := TcxImageComboBoxProperties(Sender.GetProperties);
+  for var i := 0 to Properties.Items.Count-1 do
+    AValueList.Add(fviValue, Properties.Items[i].Value, Properties.Items[i].Description, True);
 end;
 
 procedure TFormMain.GridItemsTableViewColumnStatusStateGetFilterValues(Sender: TcxCustomGridTableItem; AValueList: TcxDataFilterValueList);
@@ -7024,6 +7080,13 @@ var
 {$endif DEBUG}
 begin
   HideHint;
+
+  if (AItem = GridItemsTableViewColumnPriority) and (AEdit is TcxImageComboBox) then
+  begin
+    // Hide button of Priority combobox
+    TcxImageComboBox(AEdit).Properties.Buttons[0].Visible := False;
+    exit;
+  end;
 
   if (AItem <> GridItemsTableViewColumnTarget) then
     Exit;
@@ -7906,6 +7969,12 @@ end;
 
 // -----------------------------------------------------------------------------
 
+procedure TFormMain.TreeListColumnModulePriorityPropertiesEditValueChanged(Sender: TObject);
+begin
+  // Module priority edited inline
+  FocusedModule.Priority := TcxImageComboBox(Sender).EditValue;
+end;
+
 procedure TFormMain.TreeListColumnModuleStatusPropertiesEditValueChanged(Sender: TObject);
 begin
   // Module status edited inline
@@ -8162,31 +8231,47 @@ end;
 
 procedure TFormMain.TreeListModulesCompare(Sender: TcxCustomTreeList; ANode1, ANode2: TcxTreeListNode; var ACompare: Integer);
 begin
-  ACompare := 0;
+  if (ANode1 = ANode2) then
+    exit;
+
+  // resourcestrings always before anything else, regardless of sort order
+  if (TLocalizerModule(ANode1.Data).Kind = mkString) then
+  begin
+    ACompare := -1;
+    exit;
+  end else
+  if (TLocalizerModule(ANode2.Data).Kind = mkString) then
+  begin
+    ACompare := 1;
+    exit;
+  end else
+    ACompare := 0;
 
   for var i := 0 to Sender.SortedColumnCount-1 do
   begin
-    // resourcestrings always before anything else, regardless of sort order
-    if (TLocalizerModule(ANode1.Data).Kind = mkString) then
-      ACompare := -1
-    else
-    if (TLocalizerModule(ANode2.Data).Kind = mkString) then
-      ACompare := 1
-    else
-    begin
-      if (i = 0) then
-        // Sort module name using locale invariant compare; We don't want, for example, AE, OE, and AA treated as Ø, Æ, and Å
-        ACompare := string.Compare(ANode1.Texts[i], ANode2.Texts[i], [coIgnoreCase, coDigitAsNumbers], LOCALE_INVARIANT)
-      else
-        ACompare := string.Compare(ANode1.Texts[i], ANode2.Texts[i], [coIgnoreCase, coDigitAsNumbers]);
+    var Column := Sender.SortedColumns[i];
 
-      if (Sender.SortedColumns[i].SortOrder = soDescending) then
-        ACompare := -ACompare;
-    end;
+    if (Column = TreeListColumnModuleName) then
+      // Sort module name using locale invariant compare; We don't want, for example, AE, OE, and AA treated as Ø, Æ, and Å
+      ACompare := string.Compare(ANode1.Texts[Column.ItemIndex], ANode2.Texts[Column.ItemIndex], [coIgnoreCase, coDigitAsNumbers], LOCALE_INVARIANT)
+    else
+    if (Column = TreeListColumnModuleStatus) then
+      ACompare := string.Compare(ANode1.Texts[Column.ItemIndex], ANode2.Texts[Column.ItemIndex], [coIgnoreCase, coDigitAsNumbers])
+    else
+    if (Column = TreeListColumnModulePriority) then
+      // High priority before low
+      ACompare := integer(ANode2.Values[Column.ItemIndex]) - integer(ANode1.Values[Column.ItemIndex]);
+
+    if (Column.SortOrder = soDescending) then
+      ACompare := -ACompare;
 
     if (ACompare <> 0) then
       break;
   end;
+
+  // Default order is by module name
+  if (ACompare = 0) then
+    ACompare := string.Compare(ANode1.Texts[TreeListColumnModuleName.ItemIndex], ANode2.Texts[TreeListColumnModuleName.ItemIndex], [coIgnoreCase, coDigitAsNumbers], LOCALE_INVARIANT);
 end;
 
 procedure TFormMain.TreeListModulesFocusedColumnChanged(
@@ -8301,6 +8386,13 @@ begin
     AIndex := NodeImageIndexHold
   else
     AIndex := -1;
+end;
+
+procedure TFormMain.TreeListModulesInitEdit(Sender, AItem: TObject; AEdit: TcxCustomEdit);
+begin
+  // Hide button of Priority combobox
+  if (TreeListModules.FocusedColumn = TreeListColumnModulePriority) and (AEdit is TcxImageComboBox) then
+    TcxImageComboBox(AEdit).Properties.Buttons[0].Visible := False;
 end;
 
 procedure TFormMain.TreeListModulesStylesGetContentStyle(Sender: TcxCustomTreeList; AColumn: TcxTreeListColumn; ANode: TcxTreeListNode; var AStyle: TcxStyle);

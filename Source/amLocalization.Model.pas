@@ -228,6 +228,7 @@ type
   strict private
     FState: TLocalizerItemStates;
     FStatus: TLocalizerItemStatus;
+    FPriority: integer;
     // FStatusCount holds the accumulated sum of the *actual* status of the item.
     // For parent items the sum is that of its children's FStatusCount
     FStatusCount: array[TLocalizerItemStatus] of integer;
@@ -246,6 +247,7 @@ type
     function GetStatusCount(AStatus: TLocalizerItemStatus): integer;
     function GetTranslatedCount(Language: TTranslationLanguage): integer;
     function GetIsUnused: boolean;
+    procedure SetPriority(const Value: integer);
   protected
     procedure UpdateStatusCount(AStatus: TLocalizerItemStatus; Delta: integer);
     procedure UpdateTranslatedCount(Language: TTranslationLanguage; Delta: integer);
@@ -264,6 +266,8 @@ type
     property EffectiveStatus: TLocalizerItemStatus read GetEffectiveStatus;
     // Shortcut to test for ItemStateUnused
     property IsUnused: boolean read GetIsUnused;
+
+    property Priority: integer read FPriority write SetPriority;
 
     property StatusCount[AStatus: TLocalizerItemStatus]: integer read GetStatusCount;
     property TranslatedCount[Language: TTranslationLanguage]: integer read GetTranslatedCount;
@@ -738,6 +742,16 @@ end;
 function TCustomLocalizerItem.GetState: TLocalizerItemStates;
 begin
   Result := FState;
+end;
+
+procedure TCustomLocalizerItem.SetPriority(const Value: integer);
+begin
+  if (FPriority = Value) then
+    exit;
+
+  FPriority := Value;
+
+  Changed;
 end;
 
 procedure TCustomLocalizerItem.SetState(const Value: TLocalizerItemState);

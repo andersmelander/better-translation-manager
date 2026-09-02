@@ -166,8 +166,8 @@ object FormMain: TFormMain
         end>
       Images = DataModuleMain.ImageListTree
       OptionsBehavior.CellHints = True
-      OptionsBehavior.ImmediateEditor = False
       OptionsBehavior.ExpandOnDblClick = False
+      OptionsBehavior.HeaderHints = True
       OptionsBehavior.IncSearch = True
       OptionsBehavior.IncSearchItem = TreeListColumnModuleName
       OptionsBehavior.RecordScrollMode = rsmByRecord
@@ -175,6 +175,8 @@ object FormMain: TFormMain
       OptionsCustomizing.BandCustomizing = False
       OptionsCustomizing.BandMoving = False
       OptionsCustomizing.ColumnFiltering = bTrue
+      OptionsCustomizing.ColumnsQuickCustomization = True
+      OptionsCustomizing.ColumnsQuickCustomizationShowCommands = False
       OptionsCustomizing.ColumnVertSizing = False
       OptionsCustomizing.StackedColumns = False
       OptionsData.AnsiSort = True
@@ -190,6 +192,8 @@ object FormMain: TFormMain
       OptionsView.ShowRoot = False
       OptionsView.TreeLineStyle = tllsNone
       PopupMenu = PopupMenuTree
+      PopupMenus.ColumnHeaderMenu.UseBuiltInMenu = True
+      PopupMenus.ColumnHeaderMenu.Items = [tlchmiClearSorting, tlchmiBestFit, tlchmiBestFitAllColumns]
       ScrollbarAnnotations.CustomAnnotations = <>
       Styles.Inactive = DataModuleMain.StyleSelectedInactive
       Styles.Selection = DataModuleMain.StyleSelected
@@ -201,10 +205,12 @@ object FormMain: TFormMain
       OnFocusedColumnChanged = TreeListModulesFocusedColumnChanged
       OnFocusedNodeChanged = TreeListModulesFocusedNodeChanged
       OnGetNodeImageIndex = TreeListModulesGetNodeImageIndex
+      OnInitEdit = TreeListModulesInitEdit
       object TreeListColumnModuleName: TcxTreeListColumn
         BestFitMaxWidth = 200
         Caption.AlignVert = vaTop
         Caption.Text = 'Module'
+        Options.Customizing = False
         Options.Editing = False
         Options.Filtering = False
         Width = 160
@@ -218,29 +224,68 @@ object FormMain: TFormMain
       end
       object TreeListColumnModuleStatus: TcxTreeListColumn
         PropertiesClassName = 'TcxImageComboBoxProperties'
+        Properties.Images = DataModuleMain.ImageListSmall
         Properties.ImmediatePost = True
         Properties.ImmediateUpdateText = True
         Properties.Items = <
           item
             Description = 'Translate'
-            ImageIndex = 0
+            ImageIndex = 10
             Value = 0
           end
           item
             Description = 'Hold'
-            ImageIndex = 5
+            ImageIndex = 11
             Value = 1
           end
           item
             Description = 'Don'#39't translate'
-            ImageIndex = 2
+            ImageIndex = 12
             Value = 2
           end>
         Properties.OnEditValueChanged = TreeListColumnModuleStatusPropertiesEditValueChanged
+        RepositoryItem = DataModuleMain.EditRepositoryComboBoxItemStatus
         Caption.Text = 'Status'
         DataBinding.ValueType = 'Integer'
+        Options.Customizing = False
         Width = 70
         Position.ColIndex = 1
+        Position.RowIndex = 0
+        Position.BandIndex = 0
+        Summary.FooterSummaryItems = <>
+        Summary.GroupFooterSummaryItems = <>
+      end
+      object TreeListColumnModulePriority: TcxTreeListColumn
+        PropertiesClassName = 'TcxImageComboBoxProperties'
+        Properties.ClearKey = 8
+        Properties.Images = DataModuleMain.ImageListSmall
+        Properties.ImmediateDropDownWhenActivated = True
+        Properties.ImmediatePost = True
+        Properties.Items = <
+          item
+            Description = 'High'
+            ImageIndex = 94
+            Tag = 1
+            Value = 1
+          end
+          item
+            Description = 'Normal'
+            ImageIndex = 93
+            Value = 0
+          end
+          item
+            Description = 'Low'
+            ImageIndex = 92
+            Tag = -1
+            Value = -1
+          end>
+        Properties.ShowDescriptions = False
+        Properties.OnEditValueChanged = TreeListColumnModulePriorityPropertiesEditValueChanged
+        Visible = False
+        Caption.Text = 'Priority'
+        MinWidth = 16
+        Width = 16
+        Position.ColIndex = 2
         Position.RowIndex = 0
         Position.BandIndex = 0
         Summary.FooterSummaryItems = <>
@@ -361,6 +406,7 @@ object FormMain: TFormMain
         DataController.Options = [dcoAnsiSort, dcoCaseInsensitive, dcoAssignGroupingValues, dcoAssignMasterDetailKeys, dcoSaveExpanding]
         DataController.OnCompare = GridItemsTableViewDataControllerCompare
         DataController.OnRecordChanged = GridItemsTableViewDataControllerRecordChanged
+        Images = DataModuleMain.ImageListSmall
         OptionsBehavior.CellHints = True
         OptionsBehavior.FocusCellOnTab = True
         OptionsBehavior.IncSearch = True
@@ -431,6 +477,19 @@ object FormMain: TFormMain
           Options.Grouping = False
           VisibleForEditForm = bFalse
           Width = 100
+        end
+        object GridItemsTableViewColumnPriority: TcxGridColumn
+          Caption = 'Priority'
+          RepositoryItem = DataModuleMain.EditRepositoryComboBoxItemPriority
+          Visible = False
+          OnGetFilterValues = GridItemsTableViewColumnPriorityGetFilterValues
+          HeaderGlyphAlignmentHorz = taCenter
+          HeaderImageIndex = 93
+          Options.IncSearch = False
+          Options.FilteringAddValueItems = False
+          Options.FilteringFilteredItemsList = False
+          Width = 25
+          OnCustomDrawHeader = GridItemsTableViewColumnPriorityCustomDrawHeader
         end
         object GridItemsTableViewColumnStatus: TcxGridColumn
           Caption = 'Status'
