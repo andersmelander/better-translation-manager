@@ -160,7 +160,9 @@ begin
     if (Result) and (lmoValidateVersion in AOptions) then
     begin
 
-      var ApplicationVersion := TVersionInfo.FileVersionString(ParamStr(0));
+      // Use GetModuleName(HInstance) instead of ParamStr(0): ParamStr(0) is the
+      // host process's EXE, which is wrong when this unit runs inside a DLL.
+      var ApplicationVersion := TVersionInfo.FileVersionString(GetModuleName(HInstance));
       // Note: GetModuleFileName (used by GetModuleName) can not be used with modules loaded with LOAD_LIBRARY_AS_DATAFILE
       var ModuleVersion: string;
       var VersionInfo := TVersionInfo.Create(ModuleFilename);
