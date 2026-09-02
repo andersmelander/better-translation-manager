@@ -43,15 +43,6 @@ type
     function DoTranslateText(const ASourceLang, ATargetLang, AText: string): string;
 
   private
-    /// <summary>
-    /// Extracts clean translation from Gemini's raw response.
-    /// </summary>
-    function ExtractTranslation(const ARawResponse: string): string;
-
-    /// <summary>
-    /// Builds a translation prompt for the Gemini LLM.
-    /// </summary>
-    function BuildPrompt(const ASourceLang, ATargetLang, AText: string): string;
 
   private
     // ITranslationProvider
@@ -86,7 +77,8 @@ uses
   System.Net.URLClient,
   System.JSON,
   System.RegularExpressions,
-  amLocalization.Settings;
+  amLocalization.Settings,
+  amLocalization.Provider.Gemini.Core;
 
 resourcestring
   sProviderNameGemini = 'Google Gemini';
@@ -261,24 +253,6 @@ begin
   Result := sProviderNameGemini;
 end;
 
-function TTranslationProviderGemini.BuildPrompt(const ASourceLang, ATargetLang, AText: string): string;
-begin
-  Result := Format(
-    'You are a professional translator.'#13#10 +
-    'Translate the following text from %s to %s.'#13#10 +
-    #13#10 +
-    'Rules:'#13#10 +
-    '- Output ONLY the translated text'#13#10 +
-    '- Do not add explanations, notes, or any other additional text'#13#10 +
-    '- Preserve the original formatting and punctuation'#13#10 +
-    '- Maintain the same level of formality'#13#10 +
-    '- Keep any placeholders (e.g. %%s, %%d, {0}) exactly as they are'#13#10 +
-    #13#10 +
-    'Text to translate:'#13#10 +
-    '%s',
-    [ASourceLang, ATargetLang, AText]);
-end;
-
 constructor TTranslationProviderGemini.Create(const ASettings: ITranslationProviderSettingsGemini);
 begin
   inherited Create;
@@ -289,21 +263,6 @@ begin
     FSettings := TranslationManagerSettings.Providers.Gemini;
 end;
 
-function TTranslationProviderGemini.ExtractTranslation(const ARawResponse: string): string;
-begin
-  Result := ARawResponse.Trim;
-
-  // Remove common prefixes if any (Gemini usually follows instructions well)
-  Result := TRegEx.Replace(Result, '^(Translation:|Translated text:|Result:|The translation is:)\s*', '', [roIgnoreCase]);
-
-  // Trim again
-  Result := Result.Trim;
-
-  // Remove surrounding quotes if the model added them
-  if (Result.Length >= 2) and
-     ((Result[1] = '"') and (Result[Result.Length] = '"')) then
-    Result := Result.Substring(1, Result.Length - 2);
-end;
 
 function TTranslationProviderGemini.ValidateAPIKey(const AAPIKey: string; var AErrorMessage: string): boolean;
 begin
@@ -456,7 +415,9 @@ begin
   if APIKey.Trim.IsEmpty or ModelName.Trim.IsEmpty then
     raise EGeminiLocalizationProvider.Create(sGeminiErrorConfiguration);
 
-  var Prompt := BuildPrompt(ASourceLang, ATargetLang, AText);
+  var LineBreakType := TGeminiCore.DetectLineBreakType(AText);
+  var NormalizedText := TGeminiCore.NormalizeLineBreaks(AText);
+  var Prompt := TGeminiCore.BuildPrompt(ASourceLang, ATargetLang, NormalizedText);
 
   // Create JSON request for Gemini API
   var RequestJSON := TJSONObject.Create;
@@ -565,7 +526,8 @@ begin
             if (RawResponse.Trim.IsEmpty) then
               raise EGeminiLocalizationProvider.Create(sGeminiErrorEmptyResponse, HTTPResponse.StatusCode);
 
-            Result := ExtractTranslation(RawResponse);
+            Result := TGeminiCore.ExtractTranslation(RawResponse);
+            Result := TGeminiCore.RestoreLineBreaks(Result, LineBreakType);
 
           finally
             ResponseJSON.Free;
@@ -617,7 +579,9 @@ begin
   Result := (TranslatedText <> '');
 
   if (Result) then
-    ATranslations.Text := TranslatedText;
+    // Issue #105: Providers does not handle multi-line texts
+    // Do not assign result via TStrings.Text as we need to return line breaks as-is.
+    ATranslations.Add(TranslatedText);
 end;
 
 var
